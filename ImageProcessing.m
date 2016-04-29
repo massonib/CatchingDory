@@ -1,10 +1,10 @@
 clc
 clear
 
-adjustContrast = 0;
+adjustContrast = 1;
 
 %Load File
-a = imread('BoardPic1.jpg');
+a = imread('WebcamFish.jpg');
 
 %a = imresize(a, 0.3); % Use a smaller image for faster
 %Adjust the contrast if necessary
@@ -14,23 +14,30 @@ end
 
 %Prepocess using the rgb values to identify fish by color
 red = a(:,:,1); green = a(:,:,2); blue = a(:,:,3);
-levelr = 0.65;
-levelg = 0.75; %use green to black out yellow sides of board
-levelb = 0.65;
+levelr = 0.9;
+levelg = 1; %use green to black out yellow sides of board
+levelb = 0.75;
 i1 = im2bw(red, levelr);
-i1 = imcomplement(i1); %inverses the binary colors
-i2 = im2bw(green, levelg);
-i2 = imcomplement(i2);
+se = strel('disk',1);
+i1 = imopen(i1, se);
+i1 = imfill(i1, 'holes');
+i1= imcomplement(i1);
 i3 = im2bw(blue, levelb);
-Isum = (i1&i2&i3);
-% subplot(2,2,1), imshow(i1); title('Red Plane');
-% subplot(2,2,2), imshow(i2); title('Green Plane');
-% subplot(2,2,3), imshow(i3); title('Blue Plane');
-% subplot(2,2,4), imshow(Isum); title('Sum of all the Planes');
+se = strel('disk',1);
+i3 = imopen(i3, se);
+i3 = imfill(i3, 'holes');
+Isum = (i1&i3);
 
-%inverses the binary colors and fill the holes
-Isum = imcomplement(Isum); 
+se = strel('disk',1);
+Isum = imopen(Isum, se);
+Isum = imfill(Isum, 'holes');
 Ifill = imfill(Isum, 'holes');
+
+subplot(2,2,1), imshow(i1); title('Red Plane');
+subplot(2,2,3), imshow(i3); title('Blue Plane');
+subplot(2,2,4), imshow(Isum); title('Sum of all the Planes');
+
+
 
 imshow(Ifill)
 
@@ -46,15 +53,15 @@ stats = regionprops(labeled, 'Eccentricity', 'Area', 'BoundingBox');
 areas = [stats.Area];
 eccentricities = [stats.Eccentricity];
 
-numFish = find(eccentricities);
-statsDefects = stats(numFish);
-figure, imshow(Iopenned);
-hold on;
-for idx = 1 : length(numFish)
-    h = rectangle('Position', statsDefects(idx).BoundingBox);
-    set(h, 'EdgeColor', [0.75 0 0]);
-    hold on;
-end
+% numFish = find(eccentricities);
+% statsDefects = stats(numFish);
+% figure, imshow(Iopenned);
+% hold on;
+% for idx = 1 : length(numFish)
+%     h = rectangle('Position', statsDefects(idx).BoundingBox);
+%     set(h, 'EdgeColor', [0.75 0 0]);
+%     hold on;
+% end
 
 %c = edge(b, 'prewitt'); %default is sobel
 % c = edge(Ifill, 'canny', [.3 .4]);
