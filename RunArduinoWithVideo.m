@@ -1,5 +1,7 @@
 clear
 clc
+
+%%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
 xmin = 110; xDistance = 400; 
 ymin = 45; yDistance = 380;
 
@@ -11,7 +13,8 @@ src.FrameRate = '30.0000';
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
-
+I = getsnapshot(vid);
+imshow(I);
 preview(vid);
 stoppreview(vid);
 
@@ -27,22 +30,47 @@ start(vid);
 centerX = xDistance/2;
 centerY = yDistance/2;
 center = [centerX, centerY];
-trigger1 = [110, 270]; % X,Y coordinates
+trigger1 = [300, 325]; % X,Y coordinates
 vector1 = trigger1 - center;
 norm1 = norm(vector1);
-trigger1Radii = [130, 170]; % min and max distance from center
+trigger1Radii = [130, 180]; % min and max distance from center
 mainRadius = (yDistance+xDistance)/4;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Set a loop that stop after 100 frames of aquisition
-while(vid.FramesAcquired<=400)
-    
+%Find angle 
+
+%%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
+arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
+fopen(arduino); % initiate arduino communication
+stopValue = 'done';
+pause(5); %Pause for 5 seconds to allow for connection to be established
+
+%Send angle to Arduino "Note that the first three values will always be an
+%angle +> 010 = ten degrees. 348 = 348 degrees.
+
+resetRobot(arduino);
+currentRing = 1;
+goToRing(arduino, currentRing);
+%Check position on all rings
+%Start at position above inner ring
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+cropH = mainRadius;
+cropV = 1.05*mainRadius;
+ringH = mainRadius*.9/1.7;
+ringV = mainRadius/1.7;
+%%Note that the Arduino controls when to start and stop the game
+%%This code can be running before and after without inference or penalty.
+% Set a loop that stop after signal is changed????
+while(vid.FramesAcquired<=400 && currentRing < 5)
     % Get the snapshot of the current frame
     I = getsnapshot(vid);
     %Maximize the contrast
     I = imadjust(I,stretchlim(I));
     %Crop the image with a circle
-    I = cropWithEllipse(I, centerX, centerY, 1*mainRadius, 1.05*mainRadius);
-    I = insertEllipse(I, centerX, centerY-15, mainRadius*.9/1.7, mainRadius/1.7);% center and radius of circle   
+    I = cropWithEllipse(I, centerX, centerY, cropH, cropV);
+    I = insertEllipse(I, centerX, centerY-15, ringH, ringV);% center and radius of circle   
     
     %Find the holes
     holeStats = findHoles(I);
@@ -70,9 +98,17 @@ while(vid.FramesAcquired<=400)
             fishNorm = norm(fishVector);
             if fishNorm > trigger1Radii(1) && fishNorm < trigger1Radii(2)
                 theta = acos(dot(vector1, fishVector) / (norm1*fishNorm)); %returns angle in radians.
-                if theta < 0.15 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
+                if theta < 0.3 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
                     viscircles(fishCenter,radii,'Color','g');
                     plot(fishCenter(1),fishCenter(2), '-w+')
+                    dropPole(arduino);
+                    success = checkIfCaught(vid);
+                    %If caught, drop it off. Else, continue fishing.
+                    if(success == 1)
+                        %Note that video processing will not continue until
+                        %The drop off fish function has returned 
+                        dropOffFish(arduino);
+                    end
                 end 
             end
         end
@@ -88,10 +124,26 @@ while(vid.FramesAcquired<=400)
     end
 
     hold off
+    
+    %If no fish, update the ellipse variables 
+    %and tell the arduino to go to the next ring.
+    if length(stats) < 1
+        cropH = cropH/1.7;
+        cropV = cropV/1.7;
+        ringH = ringH/1.7;
+        ringV = ringV/1.7;
+        currentRing = currentRing + 1;
+        if(currentRing < 5)
+            goToRing(arduino, currentRing);
+        end
+    end 
 end
+
+%%Tackle the blue fish if we ever get here.
 
 % Stop the video aquisition.
 stop(vid);
 % Flush all the image data stored in the memory buffer.
 flushdata(vid);
 delete(vid);
+fclose(arduino); 

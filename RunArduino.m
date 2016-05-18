@@ -16,13 +16,14 @@ tic
 while strcmp(read, value) == 0 && toc < 5 %While not the same (with a backup timer)
     read = fscanf(arduino, '%s', 14);
 end
+
 %pause(4);
 fwrite(arduino, '1');
-% pause(2);
-% fwrite(arduino, '5'); 
-% pause(2);
-% fwrite(arduino, '6');
-% pause(10);
+ pause(4);
+ fwrite(arduino, '5'); 
+ pause(4);
+ fwrite(arduino, '6');
+ pause(10);
 % fwrite(arduino, '9');
 % pause(4);
 % fwrite(arduino, '2');
