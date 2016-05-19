@@ -4,13 +4,13 @@ function [objectStats] = findFish(I, holeStats)
 
 blue = I(:,:,3);
 %imshow(blue)
-blue = im2bw(blue, .8);
+blue = im2bw(blue, 0.6);
 %imshow(blue)
-blue = bwareaopen(blue,900);
+blue = bwareaopen(blue,700);
 %imshow(blue)
 blue = imcomplement(blue);
 %imshow(blue)
-blue = bwareaopen(blue,900);
+blue = bwareaopen(blue,700);
 %imshow(blue)
 
 % Label all the connected components in the image.
@@ -26,10 +26,10 @@ medianMinorLength = median(minorLengths );
 removeIdx = [];
 for i = 1:length(stats)
     %If abnormally large, remove it. If abnormally small, remove it.
-    if majorLengths(i) > 1.4*medianLength  || majorLengths(i) < medianLength/1.4
+    if majorLengths(i) > 65  || majorLengths(i) < 40
         removeIdx(end+1) = i;
     end
-    if minorLengths(i) > 1.4*medianMinorLength  || minorLengths(i) < medianMinorLength/1.4
+    if minorLengths(i) > 65  || minorLengths(i) < 40
         removeIdx(end+1) = i;
     end
 end
@@ -46,7 +46,7 @@ for i = 1:length(stats)
         y2 = holeStats(j).Centroid(2);
         %If abnormally large, remove it. If abnormally small, remove it.
         distance = sqrt((x2-x1)^2+(y2-y1)^2);
-        if distance < 10 
+        if distance < 30 
             removeIdx(end+1) = i;
             break
         end

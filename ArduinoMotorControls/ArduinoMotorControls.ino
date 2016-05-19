@@ -26,6 +26,8 @@ double h;
 int rotate;
 int stepForward;
 int ring;
+bool isReady;
+bool alreadySent;
 
 Servo myservo;  // create servo object to control a servo
 int pos = 90;    // variable to store the servo position
@@ -63,19 +65,16 @@ void loop() {
 // Position Initial motor coordinates
   while(digitalRead(maxBackward) == HIGH){
   //Motor1 - Vexta
-  Serial.println("Max Backwards Reached");
   myStepper1.step(-1);
   delay(500);
   }
   while(digitalRead(maxCCW) == HIGH){
-  Serial.println("Max Rotation Reached");
   //Motor2 - Nema
   rotateDeg(-425, 1); 
   delay(100);
   }
   while(digitalRead(maxForward) == HIGH){
   //Motor1 - Vexta
-  Serial.println("Max Forwards Reached");
   myStepper1.step(1);
   delay(500);
   }
@@ -83,10 +82,13 @@ void loop() {
 // Move motors specified by case choice
   if (Serial.available() > 0) {    // is a character available?
       rx_byte = Serial.read();
-
+      
     switch (rx_byte) {
-//-----------------------Move to ring 1 fish location---------------------------
+//-----------------------Move to ring 1 fish location---------------------------     
       case '1':
+          Serial.println("Busy");
+          isReady = false;
+          alreadySent = false;
           // set theta based on which side of board robots on
           theta1 = 35; // CCW from center of board to fish
           theta2 = 225; // CCW from center of board to fish
@@ -97,39 +99,29 @@ void loop() {
             theta = theta2;
             adjust = -180;
           }
-          Serial.print("Theta = ");
-          Serial.println(theta);
           rads = (3.1415/180)*(BoardRotate+adjust+theta); // convert degree to rads
-          Serial.println("Move to ring 1 pos");
           shortDist = abs(r_1*cos(abs(rads))); 
-          Serial.print("Short distance = ");
-          Serial.println(shortDist);
           longDist = sqrt(R_2*R_2 + r_1*r_1*cos(rads)*cos(rads) - r_1*r_1);
-          Serial.print("Long distance = ");
-          Serial.println(longDist);
           //Motor1 - Vexta
           stepForward = -((r_1-shortDist) + (R_2-longDist));
-          Serial.print("stepForward = ");
-          Serial.println(stepForward);
           myStepper1.step(stepForward); // Moves robot forward
           delay(5);
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
-          Serial.print("rotate = ");
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            Serial.println(-rotate);
             rotateDeg(-rotate, 1); 
           } else {
-            Serial.println(rotate);
             rotateDeg(rotate, 1);  
           }
           delay(100);
       ring = 1;
-      Serial.print("Done");
       break;
 
 //-----------------------Move to ring 2 fish location---------------------------
       case '2':
+          Serial.println("Busy");
+          isReady = false;
+          alreadySent = false;
           theta1 = 60; // CCW from center of board to fish
           theta2 = 185; // CCW from center of board to fish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
@@ -139,39 +131,29 @@ void loop() {
             theta = theta2;
             adjust = -180;
           }
-          Serial.print("Theta = ");
-          Serial.println(theta);
           rads = 3.1415*(BoardRotate+adjust+theta)/180;
-          Serial.println("Move to ring 2 pos");
           shortDist = abs(r_2*cos(abs(rads)));
-          Serial.print("Short distance = ");
-          Serial.println(shortDist);
           longDist = sqrt(R_2*R_2 + r_2*r_2*cos(rads)*cos(rads) - r_2*r_2);
-          Serial.print("Long distance = ");
-          Serial.println(longDist);
            //Motor1 - Vexta
           stepForward = -((r_1-shortDist) + (R_2-longDist));
-          Serial.print("stepForward = ");
-          Serial.println(stepForward);
           myStepper1.step(stepForward); // Moves robot forward
           delay(5);
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
-          Serial.print("rotate = ");
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            Serial.println(-rotate);
             rotateDeg(-rotate, 1); 
           } else {
-            Serial.println(rotate);
             rotateDeg(rotate, 1);  
           }
           delay(100);
       ring = 2;
-      Serial.print("Done");
       break;
 
 //-----------------------Move to ring 3 fish location---------------------------
       case '3':
+          Serial.println("Busy");
+          isReady = false;
+          alreadySent = false;
           theta1 = 348; // CCW from center of board to fish
           theta2 = 105; // CCW from center of board to fish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
@@ -181,39 +163,29 @@ void loop() {
             theta = theta2;
             adjust = -180;
           }
-          Serial.print("Theta = ");
-          Serial.println(theta);
           rads = 3.1415*(BoardRotate+adjust+theta)/180;
-          Serial.println("Move to ring 3 pos");
           shortDist = abs(r_3*cos(abs(rads)));
-          Serial.print("Short distance = ");
-          Serial.println(shortDist);
           longDist = sqrt(R_2*R_2 + r_3*r_3*cos(rads)*cos(rads) - r_3*r_3);
-          Serial.print("Long distance = ");
-          Serial.println(longDist);
           //Motor1 - Vexta
           stepForward = -((r_1-shortDist) + (R_2-longDist));
-          Serial.print("stepForward = ");
-          Serial.println(stepForward);
           myStepper1.step(stepForward); // Moves robot forward
           delay(5);
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
-          Serial.print("rotate = ");
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            Serial.println(-rotate);
             rotateDeg(-rotate, 1); 
           } else {
-            Serial.println(rotate);
             rotateDeg(rotate, 1);  
           }
           delay(100);
       ring = 3;
-      Serial.print("Done");
       break;
 
 //-----------------------Move to ring 4 fish location---------------------------
       case '4':
+          Serial.println("Busy");
+          isReady = false;
+          alreadySent = false;
           theta1 = 295; // CCW from center of board to fish
           theta2 = 175; // CCW from center of board to fish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
@@ -223,40 +195,29 @@ void loop() {
             theta = theta2;
             adjust = -180;
           }
-          Serial.print("Theta = ");
-          Serial.println(theta);
           rads = 3.1415*(BoardRotate+adjust+theta)/180;
-          Serial.println("Move to ring 4 pos");
           shortDist = abs(r_4*cos(abs(rads)));
-          Serial.print("Short distance = ");
-          Serial.println(shortDist);
           longDist = sqrt(R_2*R_2 + r_4*r_4*cos(rads)*cos(rads) - r_4*r_4);
-          Serial.print("Long distance = ");
-          Serial.println(longDist);
            //Motor1 - Vexta
           stepForward = -((r_1-shortDist) + (R_2-longDist));
-          Serial.print("stepForward = ");
-          Serial.println(stepForward);
           myStepper1.step(stepForward); // Moves robot forward
           delay(5);
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .0335 deg per step
-          Serial.print("rotate = ");
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            Serial.println(-rotate);
             rotateDeg(-rotate, 1); 
           } else {
-            Serial.println(rotate);
             rotateDeg(rotate, 1);  
           }
           delay(100);
       ring = 4;
-      Serial.print("Done");
       break;
 
 //-----------------------Catch fish------------------------------
       case '5':
-        Serial.println("Catch a fish");
+        Serial.println("Busy");
+        isReady = false;
+        alreadySent = false;
         //Servo - drop pole
         for (pos = 110; pos >= 10; pos -= 10) { // goes from 900 degrees to 0 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
@@ -268,15 +229,15 @@ void loop() {
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
-      Serial.print("Done");
       break;
 
 
 //-----------------------DROP OFF FISH------------------------------
       case '6':
+        Serial.println("Busy");
+        isReady = false;
+        alreadySent = false;
         //Motor2 - Nema rotate in degrees to drop fish
-        Serial.print("rotate = ");
-        Serial.println(rotate);
         rotateDeg((-2500+rotate), 1); 
         delay(100);
         //Servo - drop pole
@@ -302,28 +263,19 @@ void loop() {
         //Motor2 - Nema rotate back to catch another fish
         rotateDeg((2500-rotate), 1);  //reverse
         delay(1000); 
-        Serial.println("Drop of fish");
-      Serial.print("Done");
       break;
 
-//-----------------------Menu------------------------------
+//-------------------------------------------------------------------
       case '7':
-        Serial.println("------- MENU -------");
-        Serial.println("Press 1 - Move to ring 1");
-        Serial.println("Press 2 - Move to ring 2");
-        Serial.println("Press 3 - Move to ring 3");
-        Serial.println("Press 4 - Move to ring 4");
-        Serial.println("Press 5 - Catch a fish");
-        Serial.println("Press 6 - Drop of fish");        
-        Serial.println("Press 9 - Reset robot");
-        Serial.println("--------------------");
-      Serial.print("Done");
+        //Nothing so far
       break;
 
 //-----------------------Reset Position------------------------------
       case '9':
+        Serial.println("Busy");
+        isReady = false;
+        alreadySent = false;
         while(digitalRead(maxBackward) == LOW){         
-        Serial.println("Reset");
         //Motor1 - Vexta
         myStepper1.step(1); // Moves robot backward
         delay(1);
@@ -333,15 +285,23 @@ void loop() {
         rotateDeg(8, 1); 
         delay(15);
         }
-
       break;
       
       default:
-        Serial.println("Invalid option");
-      Serial.print("Done");
+        //Do nothing
       break;
     } // end: switch (rx_byte)
   } // end: if (Serial.available() > 0)
+  else 
+  {
+    isReady = true;  
+  }
+
+  if (isReady && !alreadySent)
+  {
+    alreadySent = true;
+    Serial.println("Ready");
+  }
 }
 
 

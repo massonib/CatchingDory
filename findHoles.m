@@ -4,13 +4,13 @@ function [objectStats] = findHoles(I)
 
 I = rgb2gray(I);
 %imshow(I)
-thresholdValue = 35;
+thresholdValue = 40;
 I = I > thresholdValue;
 %imshow(I)
-I = bwareaopen(I,600);
+I = bwareaopen(I,200);
 %imshow(I)
 I = imcomplement(I);
-I = bwareaopen(I,600);
+I = bwareaopen(I,200);
 %imshow(I)
 labeled = bwlabel(I, 8);
 %imshow(I)
@@ -29,6 +29,23 @@ for i = 1:length(stats)
     if minorLengths(i) > 70 || minorLengths(i) < 10
         removeIdx(end+1) = i;
     end
+    
+    %If 
+%     x1 = stats(i).Centroid(1);
+%     y1 = stats(i).Centroid(2);
+%     for j = 1:length(stats)
+%         if i ~= j
+%             x2 = stats(j).Centroid(1);
+%             y2 = stats(j).Centroid(2);
+%             %If abnormally large, remove it. If abnormally small, remove it.
+%             distance = sqrt((x2-x1)^2+(y2-y1)^2);
+%             if distance < 20 
+%                 removeIdx(end+1) = j;
+%                 removeIdx(end+1) = i;
+%                 break
+%             end
+%         end
+%     end
 end
 stats(removeIdx) = []; %removes indices
 objectStats = stats;

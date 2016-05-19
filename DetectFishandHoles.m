@@ -1,28 +1,34 @@
 clear
 clc 
-xmin = 130; xDistance = 360; 
-ymin = 64; yDistance = 326;
+xmin = 110; xDistance = 400; 
+ymin = 45; yDistance = 380;
 
-%Get the video feed
-% vid = videoinput('winvideo', 1, 'RGB24_640x480');
-% vid.ROIPosition = [xmin ymin xDistance yDistance];
-% src = getselectedsource(vid);
-% src.FrameRate = '30.0000';
-% %Now set the video input parameters. 
-% %These values were determined using imaqtool
-% src.Saturation = 299; %%Better color disctinction
-% src.Gamma = 70; 
-% 
-% % % Open a live preview window.  Point camera onto a piece of colorful fabric.
-% preview(vid);
-% 
-% % Capture one frame of data.
-% image = getsnapshot(vid);
-% imwrite(image,'WebCamFish.png','png');
-% % Delete and clear associated variables.
-% delete(vid)
-% clear vid;
 
+% % Get the video feed
+vid = videoinput('winvideo', 1, 'RGB24_640x480');
+vid.ROIPosition = [xmin ymin xDistance yDistance];
+src = getselectedsource(vid);
+src.FrameRate = '30.0000';
+%Now set the video input parameters. 
+%These values were determined using imaqtool
+src.Saturation = 299; %%Better color disctinction
+src.Gamma = 70; 
+
+% % Open a live preview window.  Point camera onto a piece of colorful fabric.
+preview(vid);
+
+try
+% Capture one frame of data.
+image = getsnapshot(vid);
+imwrite(image, 'WebCamFish.png', 'png');
+% Delete and clear associated variables.
+delete(vid)
+clear vid;
+catch
+delete(vid)
+clear vid;
+end
+% 
 a = imread('WebCamFish.png');
 a = imadjust(a,stretchlim(a)); %maximize contrast
 centerX = xDistance/2;
@@ -31,7 +37,7 @@ mainRadius = 1.05*(yDistance+xDistance)/4;
 %lineWidth = 100;
 %a = insertShape(a, 'circle', [centerX centerY mainRadius+lineWidth/2], 'LineWidth', lineWidth, 'Color', 'black');% center and radius of circle   
 %a = cropWithCircle(a, centerX, centerY, mainRadius);
-imtool(a)
+%imtool(a)
 a = cropWithEllipse(a, centerX, centerY, mainRadius*.9, mainRadius);
 %Show the image
 imshow(a)         
@@ -65,24 +71,24 @@ ring4Pickups = [157.42*conv, 291.83*conv];
 %%%%%%%%%%%%%%%%%%%%  Rotate Image about the X-axis  %%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %// Generate coordinates and unravel into a single vector
-im = flip(a,1);
-[X,Y] = meshgrid(1:size(im,2), 1:size(im,1));
-x_coord = X(:); y_coord = Y(:);
-
-red = reshape(im(:,:,1), [], 1);
-green = reshape(im(:,:,2), [], 1);
-blue = reshape(im(:,:,3), [], 1);
-scatter(x_coord, y_coord, 2, double([red green blue])/255);
-%First create a rotation matrix for the x axis for a given rotation angle theta:
-degrees = 10;
-theta = 0.0175*degrees; %In radians. .0175 per degrees
-Rx = [1 0 0; 0 cos(theta) -sin(theta); 0 sin(theta) cos(theta)];
-%Now that you're done, rotate the points:
-Pout = Rx*[x_coord.'; y_coord.'; zeros(1,numel(x_coord))];
-%Ry = [cos(theta) 0 sin(theta); 0 1 0; -sin(theta) 0 cos(theta)];
-%Pout = Ry*[x_coord.'; y_coord.'; zeros(1,numel(x_coord))];
-scatter3(Pout(1,:), Pout(2,:), Pout(3,:), 2, double([red green blue])/255);
-%scatter(Pout(1,:), Pout(2,:), 2, double([red green blue])/255);
+% im = flip(a,1);
+% [X,Y] = meshgrid(1:size(im,2), 1:size(im,1));
+% x_coord = X(:); y_coord = Y(:);
+% 
+% red = reshape(im(:,:,1), [], 1);
+% green = reshape(im(:,:,2), [], 1);
+% blue = reshape(im(:,:,3), [], 1);
+% scatter(x_coord, y_coord, 2, double([red green blue])/255);
+% %First create a rotation matrix for the x axis for a given rotation angle theta:
+% degrees = 10;
+% theta = 0.0175*degrees; %In radians. .0175 per degrees
+% Rx = [1 0 0; 0 cos(theta) -sin(theta); 0 sin(theta) cos(theta)];
+% %Now that you're done, rotate the points:
+% Pout = Rx*[x_coord.'; y_coord.'; zeros(1,numel(x_coord))];
+% %Ry = [cos(theta) 0 sin(theta); 0 1 0; -sin(theta) 0 cos(theta)];
+% %Pout = Ry*[x_coord.'; y_coord.'; zeros(1,numel(x_coord))];
+% scatter3(Pout(1,:), Pout(2,:), Pout(3,:), 2, double([red green blue])/255);
+% %scatter(Pout(1,:), Pout(2,:), 2, double([red green blue])/255);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,9 +118,6 @@ stats = findFish(I, holeStats);
 %Bound the fish in white circles.
 for object = 1:length(stats)
         center = stats(object).Centroid;
-        diameter = mean([stats(object).MajorAxisLength stats(object).MinorAxisLength],2);
-        radii = diameter/2;
-        viscircles(center,radii,'Color','w');
-        plot(center(1),center(2), '-w+')
+        plot(center(1),center(2), '-w+', 'LineWidth', 3, 'MarkerSize', 30)
 end
 hold off

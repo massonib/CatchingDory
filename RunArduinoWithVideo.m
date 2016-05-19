@@ -2,36 +2,45 @@ clear
 clc
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
-xmin = 110; xDistance = 400; 
-ymin = 45; yDistance = 380;
+xmin = 115; xDistance = 400; 
+ymin = 50; yDistance = 380;
+boardCenterX = 200 -xmin + 115;
+boardCenterY = 190 -ymin + 38;
+boardCenter = [boardCenterX, boardCenterY];
 
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
-src.FrameRate = '30.0000';
+src.FrameRate = '6.0000';
 %Now set the video input parameters. 
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
 I = getsnapshot(vid);
-imshow(I);
-preview(vid);
-stoppreview(vid);
+%imtool(I);
+%preview(vid);
+%stoppreview(vid);
 
 %Set the properties of the video object
 set(vid, 'FramesPerTrigger', Inf);
 set(vid, 'ReturnedColorSpace','rgb')
-vid.FrameGrabInterval = 5;
+vid.FrameGrabInterval = 1;
+
+% Instead of calling getsnapshot, which has a lot of overhead.
+% We use a manual approach. See "acquiring a single image in a loop"
+% example on Mathworks.com
+% Configure the object for manual trigger mode.
+triggerconfig(vid, 'manual');
 
 %start the video acquisition
 start(vid);
 
 %Set some constant variables outside the while loop
-centerX = xDistance/2;
-centerY = yDistance/2;
-center = [centerX, centerY];
-trigger1 = [300, 325]; % X,Y coordinates
-vector1 = trigger1 - center;
+vidCenterX = xDistance/2;
+vidCenterY = yDistance/2;
+vidCenter = [vidCenterX, vidCenterY];
+trigger1 = [215, 325]; % X,Y coordinates
+vector1 = trigger1 - boardCenter;
 norm1 = norm(vector1);
 trigger1Radii = [130, 180]; % min and max distance from center
 mainRadius = (yDistance+xDistance)/4;
@@ -41,9 +50,11 @@ mainRadius = (yDistance+xDistance)/4;
 
 %%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
 arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
+%arduino.ReadAsyncMode = 'continuous'; %manual did not work when I tried it turning off and on async.
 fopen(arduino); % initiate arduino communication
 stopValue = 'done';
 pause(5); %Pause for 5 seconds to allow for connection to be established
+status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
 
 %Send angle to Arduino "Note that the first three values will always be an
 %angle +> 010 = ten degrees. 348 = 348 degrees.
@@ -63,14 +74,16 @@ ringV = mainRadius/1.7;
 %%Note that the Arduino controls when to start and stop the game
 %%This code can be running before and after without inference or penalty.
 % Set a loop that stop after signal is changed????
-while(vid.FramesAcquired<=400 && currentRing < 5)
+tic
+counter = 0;
+while(toc <= 30 && currentRing < 5)
     % Get the snapshot of the current frame
     I = getsnapshot(vid);
     %Maximize the contrast
     I = imadjust(I,stretchlim(I));
     %Crop the image with a circle
-    I = cropWithEllipse(I, centerX, centerY, cropH, cropV);
-    I = insertEllipse(I, centerX, centerY-15, ringH, ringV);% center and radius of circle   
+    I = cropWithEllipse(I, vidCenterX, vidCenterY, cropH, cropV);
+    I = insertEllipse(I, vidCenterX, vidCenterY, ringH, ringV);% center and radius of circle   
     
     %Find the holes
     holeStats = findHoles(I);
@@ -82,32 +95,36 @@ while(vid.FramesAcquired<=400 && currentRing < 5)
     hold on
     
     %plot the main circle's center point
-    plot(centerX,centerY-10, '-r+') %note that the Y-axis is down
+    plot(boardCenterX,boardCenterY, '-r+', 'LineWidth', 1, 'MarkerSize', 400) %note that the Y-axis is down
 
     %Bound the fish in white circles.
     for object = 1:length(stats)
+        counter = 0;
         fishCenter = stats(object).Centroid;
-        diameter = mean([stats(object).MajorAxisLength stats(object).MinorAxisLength],2);
-        radii = diameter/2;
-        viscircles(fishCenter,radii,'Color','w');
-        plot(fishCenter(1),fishCenter(2), '-w+')
+        plot(fishCenter(1),fishCenter(2), '-w+', 'LineWidth', 3, 'MarkerSize', 30)
         
         %Check if any of the fish are close to the line.
-        fishVector = fishCenter - center;
+        fishVector = fishCenter - boardCenter;
         if fishVector(2) > 0 % On the bottom side of the board
             fishNorm = norm(fishVector);
             if fishNorm > trigger1Radii(1) && fishNorm < trigger1Radii(2)
                 theta = acos(dot(vector1, fishVector) / (norm1*fishNorm)); %returns angle in radians.
-                if theta < 0.3 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
-                    viscircles(fishCenter,radii,'Color','g');
-                    plot(fishCenter(1),fishCenter(2), '-w+')
-                    dropPole(arduino);
-                    success = checkIfCaught(vid);
-                    %If caught, drop it off. Else, continue fishing.
-                    if(success == 1)
-                        %Note that video processing will not continue until
-                        %The drop off fish function has returned 
-                        dropOffFish(arduino);
+                if theta < 0.2 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
+                    plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)
+                    
+                    %First, check if the arduino is ready 
+                    %Note, have the arduino send a 'Ready' signal every
+                    %second
+                    status = isReady(arduino, status);
+                    if status == 1 %If 'Ready' 
+                        dropPole(arduino);
+                        success = checkIfCaught(vid);
+                        %If caught, drop it off. Else, continue fishing.
+                        if(success == 1)
+                            %Note that video processing will not continue until
+                            %The drop off fish function has returned 
+                            dropOffFish(arduino);
+                        end
                     end
                 end 
             end
@@ -117,10 +134,8 @@ while(vid.FramesAcquired<=400 && currentRing < 5)
     
     %Bound the holes in green rectangular boxes.
     for object = 1:length(holeStats)
-        bb = holeStats(object).BoundingBox;
         holeCenter = holeStats(object).Centroid;
-        rectangle('Position',bb,'EdgeColor','g','LineWidth',2)
-        plot(holeCenter(1),holeCenter(2), '-m+')
+        plot(holeCenter(1),holeCenter(2), '-m+', 'LineWidth', 3, 'MarkerSize', 10)
     end
 
     hold off
@@ -128,13 +143,17 @@ while(vid.FramesAcquired<=400 && currentRing < 5)
     %If no fish, update the ellipse variables 
     %and tell the arduino to go to the next ring.
     if length(stats) < 1
-        cropH = cropH/1.7;
-        cropV = cropV/1.7;
-        ringH = ringH/1.7;
-        ringV = ringV/1.7;
-        currentRing = currentRing + 1;
-        if(currentRing < 5)
-            goToRing(arduino, currentRing);
+        counter =+ 1;
+        if counter > 12 %30 frames. 2 seconds
+            cropH = cropH/1.3;
+            cropV = cropV/1.3;
+            ringH = ringH/1.7;
+            ringV = ringV/1.7;
+            currentRing = currentRing + 1;
+            if(currentRing < 5)
+                resetRobot(arduino);
+                goToRing(arduino, currentRing);
+            end
         end
     end 
 end
