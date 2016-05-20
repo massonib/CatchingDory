@@ -29,10 +29,13 @@ delete(vid)
 clear vid;
 end
 % 
+
 a = imread('WebCamFish.png');
 a = imadjust(a,stretchlim(a)); %maximize contrast
 centerX = xDistance/2;
 centerY = yDistance/2;
+center = [centerX, centerY]
+offsetAngle = findAngle(a,center);  
 mainRadius = 1.05*(yDistance+xDistance)/4;
 %lineWidth = 100;
 %a = insertShape(a, 'circle', [centerX centerY mainRadius+lineWidth/2], 'LineWidth', lineWidth, 'Color', 'black');% center and radius of circle   

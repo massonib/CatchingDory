@@ -9,7 +9,7 @@ int maxCCW = 3; //Cannot rotate CCW any further, set 0 pos
 
 //----------------------------------
 //Rotation Variables
-int BoardRotate = 0; // position of board rotation
+int BoardRotate = 270; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
 int r_2 = 24; // Radius of ring 2
 int r_3 = 18; // Radius of ring 3

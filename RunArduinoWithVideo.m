@@ -3,7 +3,7 @@ clc
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
 xmin = 115; xDistance = 400; 
-ymin = 50; yDistance = 380;
+ymin = 55; yDistance = 380;
 boardCenterX = 200 -xmin + 115;
 boardCenterY = 190 -ymin + 38;
 boardCenter = [boardCenterX, boardCenterY];
@@ -95,7 +95,7 @@ while(toc <= 30 && currentRing < 5)
     hold on
     
     %plot the main circle's center point
-    plot(boardCenterX,boardCenterY, '-r+', 'LineWidth', 1, 'MarkerSize', 400) %note that the Y-axis is down
+    plot(boardCenterX, boardCenterY, '-r+', 'LineWidth', 1, 'MarkerSize', 400) %note that the Y-axis is down
 
     %Bound the fish in white circles.
     for object = 1:length(stats)
