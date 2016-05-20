@@ -171,16 +171,12 @@ while(toc <= 30 && currentRing < 5)
     end
     
     %Offset ringAngle for velocity and lag
-    pickupAngle =  ringAngles(currentRing) + Vmean*lag;
-    if pickupAngle > pi 
-        pickupAngle = pickupAngle - 2*pi;
-    end
-    pickupAngle
+    pickupAngle =  ringAngles(currentRing) + Vmean*lag
     
     %Check if any of the fish are close to the line.
     for object = 1:length(stats)
         fishAngle = getAngle(fishCenter, boardCenter);
-        diff = absDiffAngle(fishAngle, pickupAngle);
+        diff = absDiffAngle(fishAngle, ringAngles);
         if diff < 0.2 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
             plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)
 
