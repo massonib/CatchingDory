@@ -1,6 +1,8 @@
 clear
 clc
 
+offsetAngle = 0;
+
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
 xmin = 115; xDistance = 400; 
 ymin = 55; yDistance = 380;
@@ -12,6 +14,7 @@ vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
 src.FrameRate = '6.0000';
+frameRate = 6;
 %Now set the video input parameters. 
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
@@ -24,7 +27,9 @@ I = getsnapshot(vid);
 %Set the properties of the video object
 set(vid, 'FramesPerTrigger', Inf);
 set(vid, 'ReturnedColorSpace','rgb')
-vid.FrameGrabInterval = 1;
+frameGrabRate = 1;
+vid.FrameGrabInterval = frameGrabRate;
+
 
 % Instead of calling getsnapshot, which has a lot of overhead.
 % We use a manual approach. See "acquiring a single image in a loop"
@@ -45,8 +50,6 @@ norm1 = norm(vector1);
 trigger1Radii = [130, 180]; % min and max distance from center
 mainRadius = (yDistance+xDistance)/4;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%Find angle 
 
 %%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
 arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
@@ -76,6 +79,7 @@ ringV = mainRadius/1.7;
 % Set a loop that stop after signal is changed????
 tic
 counter = 0;
+needNewFish = 1;
 while(toc <= 30 && currentRing < 5)
     % Get the snapshot of the current frame
     I = getsnapshot(vid);
@@ -89,6 +93,33 @@ while(toc <= 30 && currentRing < 5)
     holeStats = findHoles(I);
     %Find the fish
     stats = findFish(I, holeStats);
+    
+    %Calculate Velocity
+    if ~isempty(stats) %if not empty
+        if needNewFish == 1;
+            firstFish = stats(1);
+            needNewFish = 0;
+        else
+            needNewFish = 1;
+            %Try to track the firstFish from last image
+            oldAngle = getAngle(firstFish.Centroid, boardCenter);
+            %Check all the current fish for a match
+            for i = 1:length(stats)
+                newAngle = getAngle(stats(i).Centroid, boardCenter);
+                if newAngle > 0 && oldAngle < 0
+                    diff = (pi - newAngle) + (pi + oldAngle);
+                else
+                    diff = old-new;
+                end
+                %Diff should never be negative!!
+                if diff < 0.1 %.1 radians 
+                    %Found the fish. Now calculate the angular velocity
+                    angleVelocity = diff*frameRate/frameGrabRate;
+                    break
+                end
+            end
+        end
+    end
     
     % Display the image
     imshow(I)
@@ -142,7 +173,7 @@ while(toc <= 30 && currentRing < 5)
     
     %If no fish, update the ellipse variables 
     %and tell the arduino to go to the next ring.
-    if length(stats) < 1
+    if ~isempty(stats) %if not empty
         counter =+ 1;
         if counter > 12 %30 frames. 2 seconds
             cropH = cropH/1.3;
