@@ -1,7 +1,8 @@
 clear
 clc
 
-offsetAngle = 0;
+offsetAngle = -1.094;
+robotLag = 0.6;
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
 xmin = 115; xDistance = 400; 
@@ -90,10 +91,12 @@ goToRing(arduino, currentRing);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-cropH = mainRadius;
-cropV = 1.05*mainRadius;
-ringH = mainRadius*.9/1.7;
-ringV = mainRadius/1.7;
+cropMultipliers = [1, 0.75, 0.51, 0.4];
+cropH = cropMultipliers.*(mainRadius);
+cropV = cropMultipliers.*(1.05*mainRadius);
+ringMultipliers = [0.6, 0.35, 0.2, 0.01];
+ringH = ringMultipliers.*(.9*mainRadius);
+ringV = ringMultipliers.*(mainRadius);
 %%Note that the Arduino controls when to start and stop the game
 %%This code can be running before and after without inference or penalty.
 % Set a loop that stop after signal is changed????
@@ -103,15 +106,24 @@ needNewFish = 1;
 V = [];
 Vmean = 1; %Initialization
 timerVal = tic;
-while(toc <= 30 && currentRing < 5)
-    
+
+while(toc < 60*4 && currentRing < 5)
+    lagStart = tic; 
     % Get the snapshot of the current frame
     I = getsnapshot(vid);
     %Maximize the contrast
     I = imadjust(I,stretchlim(I));
+
     %Crop the image with a circle
-    I = cropWithEllipse(I, vidCenterX, vidCenterY, cropH, cropV);
-    I = insertEllipse(I, vidCenterX, vidCenterY, ringH, ringV);% center and radius of circle   
+    if currentRing == 1
+        I = cropWithEllipse(I, vidCenterX, vidCenterY, cropH(currentRing), cropV(currentRing));
+        I = insertEllipse(I, boardCenterX, boardCenterY, ringH(currentRing), ringV(currentRing));% center and radius of circle    
+    elseif currentRing > 1
+        cropCenterX = (boardCenterX + vidCenterX)/2;
+        cropCenterY =(boardCenterY + vidCenterY)/2;
+        I = cropWithEllipse(I, cropCenterX, cropCenterY, cropH(currentRing), cropV(currentRing));
+        I = insertEllipse(I, boardCenterX, boardCenterY, ringH(currentRing), ringV(currentRing));% center and radius of circle    
+    end
     
     %Find the holes
     holeStats = findHoles(I);
@@ -165,25 +177,26 @@ while(toc <= 30 && currentRing < 5)
 
     %Bound the fish in white circles.
     for object = 1:length(stats)
-        counter = 0;
         fishCenter = stats(object).Centroid;
         plot(fishCenter(1),fishCenter(2), '-w+', 'LineWidth', 3, 'MarkerSize', 30)
     end
     
     %Offset ringAngle for velocity and lag
-    pickupAngle =  ringAngles(currentRing) + Vmean*lag;
+    processLag = toc(lagStart);
+    pickupAngle =  ringAngles(currentRing) + Vmean*(processLag + robotLag);
     if pickupAngle > pi 
         pickupAngle = pickupAngle - 2*pi;
     end
-    pickupAngle
+    pickupAngle;
     
     %Check if any of the fish are close to the line.
     for object = 1:length(stats)
+        fishCenter = stats(object).Centroid;
         fishAngle = getAngle(fishCenter, boardCenter);
         diff = absDiffAngle(fishAngle, pickupAngle);
-        if diff < 0.2 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
-            plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)
-
+        if diff < 0.1 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
+            plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)         
+            
             %First, check if the arduino is ready 
             %Note, have the arduino send a 'Ready' signal every
             %second
@@ -198,8 +211,8 @@ while(toc <= 30 && currentRing < 5)
                     dropOffFish(arduino);
                 end
             end
+            break;
         end 
-        break;
     end
     
     
@@ -212,20 +225,18 @@ while(toc <= 30 && currentRing < 5)
     hold off
     
     %If no fish, update the ellipse variables 
-    %and tell the arduino to go to the next ring.
-    if ~isempty(stats) %if not empty
-        counter =+ 1;
+    %and tell the arduino to go to the next ring.   
+    if isempty(stats) %if empty
+        counter = counter + 1;
         if counter > 12 %30 frames. 2 seconds
-            cropH = cropH/1.3;
-            cropV = cropV/1.3;
-            ringH = ringH/1.7;
-            ringV = ringV/1.7;
             currentRing = currentRing + 1;
             if(currentRing < 5)
                 resetRobot(arduino);
                 goToRing(arduino, currentRing);
             end
         end
+    else
+        counter = 0;
     end 
 end
 

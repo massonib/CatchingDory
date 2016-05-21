@@ -1,5 +1,9 @@
 clear
 clc
+
+offsetAngle = -1.09;
+robotLag = 0.5;
+
 xmin = 115; xDistance = 400; 
 ymin = 55; yDistance = 380;
 boardCenterX = 200 -xmin + 115;
@@ -38,22 +42,50 @@ start(vid);
 
 
 %Set some constant variables outside the while loop
-centerX = xDistance/2;
-centerY = yDistance/2;
-center = [centerX, centerY];
-trigger1 = [300, 325]; % X,Y coordinates
-vector1 = trigger1 - center;
-norm1 = norm(vector1);
-trigger1Radii = [130, 180]; % min and max distance from center
+vidCenterX = xDistance/2;
+vidCenterY = yDistance/2;
+vidCenter = [vidCenterX, vidCenterY];
 mainRadius = (yDistance+xDistance)/4;
 
+%Radian Positions for Open Mouth Fish, with row1 = ring 1 (outerRing)
+ringAnglesPreOffset = [0.39, -2.48 ; 0.99, -3.03 ; -0.19, 1.7 ; 2.81, -1.03]; 
+ringAngles = [0,0,0,0];
+%For each row, get the closer value to -1.2 radians (robot's 0) after
+%offset
+for i = 1:4
+    newPositions = [0, 0];
+    differences = [0, 0];
+    for j = 1:2
+        position = ringAnglesPreOffset(i,j);
+        new = position + offsetAngle;
+        if new > pi %CCW rotation over the 12 on a clock 
+            new = new - 2*pi;
+        elseif new < -pi %CW rotation over the 12 on a clock
+            new = new + 2*pi;
+        end
+        newPositions(j) = new;
+        differences(j) = absDiffAngle(-1.2, new);
+    end
+    [val, j] = min(differences);
+    ringAngles(i) = newPositions(j);
+end
+
+cropMultipliers = [1, 0.75, 0.51, 0.4];
+cropH = cropMultipliers.*(mainRadius);
+cropV = cropMultipliers.*(1.05*mainRadius);
+ringMultipliers = [0.6, 0.35, 0.2, 0.01];
+ringH = ringMultipliers.*(.9*mainRadius);
+ringV = ringMultipliers.*(mainRadius);
+
+currentRing = 1;
 tic
 needNewFish = 1;
 V = [];
 timerVal = tic;
+Vmean = 1;
 try
-while(toc < 40) %Run for 30 seconds
-    
+while(toc < 20) %Run for 30 seconds
+    lagStart = tic; 
     % Get the snapshot of the current frame
     % Instead of calling getsnapshot, which has a lot of overhead.
     % We use a manual approach. See acquiring a single image in a loop
@@ -63,9 +95,15 @@ while(toc < 40) %Run for 30 seconds
     %Maximize the contrast
     I = imadjust(I,stretchlim(I));
     %Crop the image with a circle
-    I = cropWithEllipse(I, centerX, centerY, 1*mainRadius, 1.05*mainRadius);
-    I = insertEllipse(I, centerX, centerY, mainRadius*.9/1.7, mainRadius/1.7);% center and radius of circle   
-    
+    if currentRing == 1
+        I = cropWithEllipse(I, vidCenterX, vidCenterY, cropH(currentRing), cropV(currentRing));
+        %I = insertEllipse(I, boardCenterX, boardCenterY, ringH(currentRing), ringV(currentRing));% center and radius of circle    
+    elseif currentRing > 1
+        cropCenterX = (boardCenterX + vidCenterX)/2;
+        cropCenterY =(boardCenterY + vidCenterY)/2;
+        I = cropWithEllipse(I, cropCenterX, cropCenterY, cropH(currentRing), cropV(currentRing));
+        %I = insertEllipse(I, boardCenterX, boardCenterY, ringH(currentRing), ringV(currentRing));% center and radius of circle    
+    end
     %Find the holes
     holeStats = findHoles(I);
     %Find the fish
@@ -120,18 +158,25 @@ while(toc < 40) %Run for 30 seconds
     for object = 1:length(stats)
         fishCenter = stats(object).Centroid;
         plot(fishCenter(1),fishCenter(2), '-w+', 'LineWidth', 3, 'MarkerSize', 30)
-        
-        %Check if any of the fish are close to the line.
-        fishVector = fishCenter - boardCenter;
-        if fishVector(2) > 0 % On the bottom side of the board
-            fishNorm = norm(fishVector);
-            if fishNorm > trigger1Radii(1) && fishNorm < trigger1Radii(2)
-                theta = acos(dot(vector1, fishVector) / (norm1*fishNorm)); %returns angle in radians.
-                if theta < 0.15 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
-                    plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)
-                end 
-            end
-        end
+    end
+    
+    %Offset ringAngle for velocity and lag
+    processLag = toc(lagStart);
+    pickupAngle =  ringAngles(currentRing) + Vmean*(processLag + robotLag);
+    if pickupAngle > pi 
+        pickupAngle = pickupAngle - 2*pi;
+    end
+    pickupAngle;
+    
+    %Check if any of the fish are close to the line.
+    for object = 1:length(stats)
+        fishCenter = stats(object).Centroid;
+        fishAngle = getAngle(fishCenter, boardCenter);
+        diff = absDiffAngle(fishAngle, pickupAngle);
+        if diff < 0.1 %if missing trigger due to lag, increase this value (though that will decrease accuracy)
+            plot(fishCenter(1),fishCenter(2), '-g+', 'LineWidth', 3, 'MarkerSize', 30)
+            break
+        end 
     end
     
     
