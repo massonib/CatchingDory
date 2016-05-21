@@ -4,38 +4,32 @@ xmin = 110; xDistance = 400;
 ymin = 45; yDistance = 380;
 
 
-% % Get the video feed
+% % % Get the video feed
+imaqreset; %Handles mistakely ended video feeds
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
-src.FrameRate = '30.0000';
+src.FrameRate = '6.0000';
 %Now set the video input parameters. 
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
-
-% % Open a live preview window.  Point camera onto a piece of colorful fabric.
+ 
 preview(vid);
 
-try
 % Capture one frame of data.
+pause(1);
 image = getsnapshot(vid);
 imwrite(image, 'WebCamFish.png', 'png');
 % Delete and clear associated variables.
 delete(vid)
 clear vid;
-catch
-delete(vid)
-clear vid;
-end
-% 
 
 a = imread('WebCamFish.png');
 a = imadjust(a,stretchlim(a)); %maximize contrast
 centerX = xDistance/2;
 centerY = yDistance/2;
-center = [centerX, centerY]
-offsetAngle = findAngle(a,center);  
+center = [centerX, centerY] ;
 mainRadius = 1.05*(yDistance+xDistance)/4;
 %lineWidth = 100;
 %a = insertShape(a, 'circle', [centerX centerY mainRadius+lineWidth/2], 'LineWidth', lineWidth, 'Color', 'black');% center and radius of circle   

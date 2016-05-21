@@ -9,7 +9,7 @@ int maxCCW = 3; //Cannot rotate CCW any further, set 0 pos
 
 //----------------------------------
 //Rotation Variables
-int BoardRotate = 270; // position of board rotation
+int BoardRotate = 0; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
 int r_2 = 24; // Radius of ring 2
 int r_3 = 18; // Radius of ring 3
@@ -23,8 +23,10 @@ double rads;
 double shortDist; 
 double longDist;
 double h;
+int settleAfterMove;
 int rotate;
 int stepForward;
+int dropTime; //A drop time set by each ring.
 int ring;
 bool isReady;
 bool alreadySent;
@@ -62,6 +64,7 @@ char rx_byte = 0; // input value from serial monitor
 
 void loop() {
 //--------------------------------------------
+settleAfterMove = 200;
 // Position Initial motor coordinates
   while(digitalRead(maxBackward) == HIGH){
   //Motor1 - Vexta
@@ -87,6 +90,7 @@ void loop() {
 //-----------------------Move to ring 1 fish location---------------------------     
       case '1':
           Serial.println("Busy");
+          dropTime = 300;
           isReady = false;
           alreadySent = false;
           // set theta based on which side of board robots on
@@ -113,13 +117,14 @@ void loop() {
           } else {
             rotateDeg(rotate, 1);  
           }
-          delay(100);
+          delay(settleAfterMove);
       ring = 1;
       break;
 
 //-----------------------Move to ring 2 fish location---------------------------
       case '2':
           Serial.println("Busy");
+          dropTime = 600;
           isReady = false;
           alreadySent = false;
           theta1 = 60; // CCW from center of board to fish
@@ -145,12 +150,13 @@ void loop() {
           } else {
             rotateDeg(rotate, 1);  
           }
-          delay(100);
+          delay(settleAfterMove);
       ring = 2;
       break;
 
 //-----------------------Move to ring 3 fish location---------------------------
       case '3':
+          dropTime = 700;
           Serial.println("Busy");
           isReady = false;
           alreadySent = false;
@@ -177,12 +183,13 @@ void loop() {
           } else {
             rotateDeg(rotate, 1);  
           }
-          delay(100);
+          delay(settleAfterMove);
       ring = 3;
       break;
 
 //-----------------------Move to ring 4 fish location---------------------------
       case '4':
+          dropTime = 800;
           Serial.println("Busy");
           isReady = false;
           alreadySent = false;
@@ -209,7 +216,7 @@ void loop() {
           } else {
             rotateDeg(rotate, 1);  
           }
-          delay(100);
+          delay(settleAfterMove);
       ring = 4;
       break;
 
@@ -219,13 +226,13 @@ void loop() {
         isReady = false;
         alreadySent = false;
         //Servo - drop pole
-        for (pos = 110; pos >= 10; pos -= 10) { // goes from 900 degrees to 0 degrees
+        for (pos = 110; pos >= 10; pos -= 10) { // goes from 90 degrees to 0 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
-        delay(1000); 
+        delay(dropTime); 
         //Servo - raise pole
-         for (pos = 10; pos <= 120; pos += 10) { // goes from 0 degrees to 90 degrees
+         for (pos = 10; pos <= 120; pos += 4) { // goes from 0 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
@@ -262,7 +269,7 @@ void loop() {
         }
         //Motor2 - Nema rotate back to catch another fish
         rotateDeg((2500-rotate), 1);  //reverse
-        delay(1000); 
+        delay(1100); 
       break;
 
 //-------------------------------------------------------------------
