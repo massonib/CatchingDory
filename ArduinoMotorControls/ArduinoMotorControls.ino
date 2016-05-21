@@ -3,12 +3,13 @@
 #define DIR_PIN 4 //For Stepper "Motor 2" Nema 11
 #define STEP_PIN 5 //For Motor 2
 
-int maxBackward = 2; //Cannot slide back any further
-int maxForward = 13; //Cannot slide forward any further
-int maxCCW = 3; //Cannot rotate CCW any further, set 0 pos
+int START = 1; //button to start all playing
+int maxBackward = 2; //button at max backward motion
+int maxForward = 13; //button at max forward motion
+int maxCCW = 3; //button at max Rotational motion
 
 //----------------------------------
-//Rotation Variables
+//Defining used variables
 int BoardRotate = 0; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
 int r_2 = 24; // Radius of ring 2
@@ -42,6 +43,7 @@ Stepper myStepper1(stepsPerRevolution, 8, 9, 10, 11);
 
 void setup() {
 // Button setup
+  pinMode(START, LOW); //turn on switch
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
@@ -63,9 +65,8 @@ void setup() {
 char rx_byte = 0; // input value from serial monitor
 
 void loop() {
-//--------------------------------------------
 settleAfterMove = 200;
-// Position Initial motor coordinates
+// Adjustments for pressed buttons
   while(digitalRead(maxBackward) == HIGH){
   //Motor1 - Vexta
   myStepper1.step(-1);
@@ -81,12 +82,14 @@ settleAfterMove = 200;
   myStepper1.step(1);
   delay(500);
   }
-//--------------------------------------------
-// Move motors specified by case choice
-  if (Serial.available() > 0) {    // is a character available?
+//--------START playing the game------------------
+  while(digitalRead(START) == HIGH){
+// Get serial input data
+  if (Serial.available() > 0) { // is a character available?
       rx_byte = Serial.read();
-      
-    switch (rx_byte) {
+      switch (rx_byte) {
+        
+// Move motors specified by case number
 //-----------------------Move to ring 1 fish location---------------------------     
       case '1':
           Serial.println("Busy");
@@ -226,20 +229,20 @@ settleAfterMove = 200;
         isReady = false;
         alreadySent = false;
         //Servo - drop pole
-        for (pos = 110; pos >= 10; pos -= 10) { // goes from 90 degrees to 0 degrees
+        for (pos = 110; pos >= 10; pos -= 10) { // goes from 110 degrees to 10 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
         delay(dropTime); 
         //Servo - raise pole
-         for (pos = 10; pos <= 120; pos += 4) { // goes from 0 degrees to 90 degrees
+         for (pos = 10; pos <= 120; pos += 4) { // goes from 10 degrees to 120 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
       break;
 
 
-//-----------------------DROP OFF FISH------------------------------
+//-----------------------Drop off fish------------------------------
       case '6':
         Serial.println("Busy");
         isReady = false;
@@ -248,33 +251,37 @@ settleAfterMove = 200;
         rotateDeg((-2500+rotate), 1); 
         delay(100);
         //Servo - drop pole
-        for (pos = 90; pos >= 0; pos -= 10) { // goes from 900 degrees to 0 degrees
+        for (pos = 90; pos >= 0; pos -= 10) { // goes from 90 degrees to 0 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
+          delay(15);                       // waits for the servo to reach the position
         }
         //Servo - drop pole
-        for (pos = 150; pos >= 90; pos -= 1) { // goes from 900 degrees to 0 degrees
+        for (pos = 150; pos >= 90; pos -= 1) { // goes from 150 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
+          delay(15);                       // waits for the servo to reach the position
         }
         //Servo - raise pole
-        for (pos = 90; pos <= 150; pos += 1) { // goes from 0 degrees to 90 degrees
+        for (pos = 90; pos <= 150; pos += 1) { // goes from 90 degrees to 1500 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
+          delay(15);                       // waits for the servo to reach the position
         }
-        //Servo - raise pole
+        //Servo - lower pole
         for (pos = 0; pos <= 90; pos += 10) { // goes from 0 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
+          delay(15);                       // waits for the servo to reach the position
         }
         //Motor2 - Nema rotate back to catch another fish
         rotateDeg((2500-rotate), 1);  //reverse
         delay(1100); 
       break;
 
-//-------------------------------------------------------------------
+//----------------------Position pole ready to fish---------------------------
       case '7':
-        //Nothing so far
+        //Servo - lower pole close to board
+        for (pos = 0; pos >= 70; pos -= 10) { // goes from 0 degrees to 90 degrees
+          myservo.write(pos);              // tell servo to go to position in variable 'pos'
+          delay(15);                       // waits for the servo to reach the position
+        }
       break;
 
 //-----------------------Reset Position------------------------------
@@ -284,18 +291,19 @@ settleAfterMove = 200;
         alreadySent = false;
         while(digitalRead(maxBackward) == LOW){         
         //Motor1 - Vexta
-        myStepper1.step(1); // Moves robot backward
+        myStepper1.step(1); // Moves robot backward one step at a time
         delay(1);
         }
         while(digitalRead(maxCCW) == LOW){
         //Motor2 - Nema
-        rotateDeg(8, 1); 
+        rotateDeg(8, 1); // Rotate robot arm back to 0 degrees
         delay(15);
         }
       break;
-      
+
+//-----------------------Input not a case choice------------------------------     
       default:
-        //Do nothing
+        //Do nothing because input was not a correct case number
       break;
     } // end: switch (rx_byte)
   } // end: if (Serial.available() > 0)
@@ -309,8 +317,8 @@ settleAfterMove = 200;
     alreadySent = true;
     Serial.println("Ready");
   }
+  } // end: while (START) button is active
 }
-
 
 
 
