@@ -4,9 +4,9 @@ function [objectStats] = findFish(I, holeStats)
 
 blue = I(:,:,3);
 %imshow(blue)
-blue = im2bw(blue, 0.6);
+blue = im2bw(blue, 0.6); %Camera 1 = 0.6, Camera 2 = 0.3
 %imshow(blue)
-blue = bwareaopen(blue,700);
+blue = bwareaopen(blue,700); 
 %imshow(blue)
 blue = imcomplement(blue);
 %imshow(blue)

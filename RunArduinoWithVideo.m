@@ -11,6 +11,7 @@ boardCenterX = 200 -xmin + 115;
 boardCenterY = 190 -ymin + 38;
 boardCenter = [boardCenterX, boardCenterY];
 
+imaqreset; %Handles mistakely ended video feeds
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
