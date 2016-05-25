@@ -236,7 +236,7 @@ while(toc < 60*4 && currentRing < 5)
                     pause(2); %Wait for it to stabalize
                     I2 = getsnapshot(vid2);
                     isFishOnHook = fishOnHook(I2, Vid2Position);
-                    while isFishOnHook ~= 1
+                    while isFishOnHook == 1
                         dropPole(arduino);
                         pause(2);
                         I2 = getsnapshot(vid2);
