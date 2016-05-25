@@ -3,18 +3,19 @@
 #define DIR_PIN 4 //For Stepper "Motor 2" Nema 11
 #define STEP_PIN 5 //For Motor 2
 
-int START = 1; //button to start all playing
+int START = 7; //button to start play
 int maxBackward = 2; //button at max backward motion
 int maxForward = 13; //button at max forward motion
 int maxCCW = 3; //button at max Rotational motion
 
 //----------------------------------
 //Defining used variables
+int STARTstate = 0;
 int BoardRotate = 0; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
-int r_2 = 24; // Radius of ring 2
+int r_2 = 26; // Radius of ring 2
 int r_3 = 18; // Radius of ring 3
-int r_4 = 11; // Radius of ring 4
+int r_4 = 10; // Radius of ring 4
 int R_2 = 111; // Radius of robot arm
 int theta;
 int theta1;
@@ -31,6 +32,8 @@ int dropTime; //A drop time set by each ring.
 int ring;
 bool isReady;
 bool alreadySent;
+bool startAlreadySent;
+bool stopAlreadySent;
 
 Servo myservo;  // create servo object to control a servo
 int pos = 90;    // variable to store the servo position
@@ -43,7 +46,8 @@ Stepper myStepper1(stepsPerRevolution, 8, 9, 10, 11);
 
 void setup() {
 // Button setup
-  pinMode(START, LOW); //turn on switch
+  pinMode(START, INPUT); //turn on switch
+  digitalWrite(START, HIGH);  
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
@@ -60,6 +64,9 @@ void setup() {
   
   // initialize the serial port:
   Serial.begin(9600);
+
+  startAlreadySent = false;
+  stopAlreadySent = false;
 }
 
 char rx_byte = 0; // input value from serial monitor
@@ -74,7 +81,7 @@ settleAfterMove = 200;
   }
   while(digitalRead(maxCCW) == HIGH){
   //Motor2 - Nema
-  rotateDeg(-425, 1); 
+  rotateDeg(-1150, 1); 
   delay(100);
   }
   while(digitalRead(maxForward) == HIGH){
@@ -82,9 +89,18 @@ settleAfterMove = 200;
   myStepper1.step(1);
   delay(500);
   }
+  
+  
 //--------START playing the game------------------
-  while(digitalRead(START) == HIGH){
-// Get serial input data
+//  STARTstate = digitalRead(START);
+//  while(digitalRead(START) == LOW){
+//    if (!startAlreadySent)
+//    {
+//      Serial.println("Start");
+//      startAlreadySent = true;
+//    }
+//    stopAlreadySent = false;
+  // Get serial input data
   if (Serial.available() > 0) { // is a character available?
       rx_byte = Serial.read();
       switch (rx_byte) {
@@ -97,8 +113,8 @@ settleAfterMove = 200;
           isReady = false;
           alreadySent = false;
           // set theta based on which side of board robots on
-          theta1 = 35; // CCW from center of board to fish
-          theta2 = 225; // CCW from center of board to fish
+          theta1 = 30; // CCW from center of board to fish
+          theta2 = 220; // CCW from center of board to fish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
             theta = theta1;
             adjust = 0;
@@ -130,7 +146,7 @@ settleAfterMove = 200;
           dropTime = 600;
           isReady = false;
           alreadySent = false;
-          theta1 = 60; // CCW from center of board to fish
+          theta1 = 63; // CCW from center of board to fish
           theta2 = 185; // CCW from center of board to fish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
             theta = theta1;
@@ -197,7 +213,7 @@ settleAfterMove = 200;
           isReady = false;
           alreadySent = false;
           theta1 = 295; // CCW from center of board to fish
-          theta2 = 175; // CCW from center of board to fish
+          theta2 = 175; // CCW from center of board to f5ish
           if (BoardRotate <= (90-theta1) || BoardRotate >= (270-theta1)){
             theta = theta1;
             adjust = 0;
@@ -235,7 +251,7 @@ settleAfterMove = 200;
         }
         delay(dropTime); 
         //Servo - raise pole
-         for (pos = 10; pos <= 120; pos += 4) { // goes from 10 degrees to 120 degrees
+         for (pos = 10; pos <= 180; pos += 4) { // goes from 10 degrees to 120 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
@@ -256,32 +272,39 @@ settleAfterMove = 200;
           delay(15);                       // waits for the servo to reach the position
         }
         //Servo - drop pole
-        for (pos = 150; pos >= 90; pos -= 1) { // goes from 150 degrees to 90 degrees
+        for (pos = 150; pos >= 90; pos -= 1) { // goes from 150 degrees to 90 deg5rees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
         //Servo - raise pole
-        for (pos = 90; pos <= 150; pos += 1) { // goes from 90 degrees to 1500 degrees
+        for (pos = 90; pos <= 180; pos += 1) { // goes from 90 degrees to 1500 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
-        //Servo - lower pole
-        for (pos = 0; pos <= 90; pos += 10) { // goes from 0 degrees to 90 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits for the servo to reach the position
-        }
-        //Motor2 - Nema rotate back to catch another fish
-        rotateDeg((2500-rotate), 1);  //reverse
-        delay(1100); 
       break;
 
-//----------------------Position pole ready to fish---------------------------
+//----------------------Return to board from fish drop off---------------------------
       case '7':
-        //Servo - lower pole close to board
-        for (pos = 0; pos >= 70; pos -= 10) { // goes from 0 degrees to 90 degrees
+        Serial.println("Busy");
+        isReady = false;
+        alreadySent = false;
+        //Motor2 - Nema rotate back to catch another fish
+        rotateDeg((2500+(-rotate)), 1);  //reverse
+        delay(100);
+        //Servo - lower pole
+        for (pos = 20; pos <= 90; pos += 10) { // goes from 0 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
+      break;
+
+//----------------------Move pole ready to fish---------------------------
+      case '8':
+        Serial.println("Busy");
+        isReady = false;
+        alreadySent = false;
+        //Servo - lower pole close to board
+          myservo.write(90);
       break;
 
 //-----------------------Reset Position------------------------------
@@ -317,7 +340,12 @@ settleAfterMove = 200;
     alreadySent = true;
     Serial.println("Ready");
   }
-  } // end: while (START) button is active
+//  } // end: while (START) button is active
+//  if(startAlreadySent && !stopAlreadySent)
+//  {
+//    Serial.println("Stop");
+//    stopAlreadySent = true;
+//  }
 }
 
 
