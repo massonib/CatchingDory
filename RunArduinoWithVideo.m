@@ -2,7 +2,7 @@ clear
 clc
 
 RobotZero = -1.12;
-offsetAngle = -1.11;
+offsetAngle = -1.1;
 robotLag = 0.6;
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,23 +13,31 @@ boardCenterY = 190 -ymin + 35;
 boardCenter = [boardCenterX, boardCenterY];
 
 imaqreset; %Handles mistakely ended video feeds
+
+%Create video 1 and set it parameters
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
 src.FrameRate = '6.0000';
 frameRate = 6;
-%Now set the video input parameters. 
-%These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
 I = getsnapshot(vid);
-%imtool(I);
-%preview(vid);
-%stoppreview(vid);
+set(vid, 'FramesPerTrigger', Inf);
+set(vid, 'ReturnedColorSpace','rgb')
+frameGrabRate = 1;
+vid.FrameGrabInterval = frameGrabRate;
+% Instead of calling getsnapshot, which has a lot of overhead.
+% We use a manual approach. See "acquiring a single image in a loop"
+% example on Mathworks.com
+% Configure the object for manual trigger mode
+triggerconfig(vid, 'manual');
+%start the video acquisition
+start(vid);
 
-%Set second video 
+%Create video 2 and set it parameters
 vid2 = videoinput('winvideo', 3, 'YUY2_352x288');
-Vid2Position = [52 32 81 114];
+Vid2Position = [12 32 160 114];
 vid2.ROIPosition = Vid2Position;
 src2 = getselectedsource(vid2);
 src2.FrameRate = '5.0000';
@@ -37,20 +45,6 @@ set(vid2, 'FramesPerTrigger', Inf);
 set(vid2, 'ReturnedColorSpace','rgb')
 vid2.FrameGrabInterval = 1;
 triggerconfig(vid2, 'manual');
-
-%Set the properties of the video object
-set(vid, 'FramesPerTrigger', Inf);
-set(vid, 'ReturnedColorSpace','rgb')
-frameGrabRate = 1;
-vid.FrameGrabInterval = frameGrabRate;
-triggerconfig(vid, 'manual');
-% Instead of calling getsnapshot, which has a lot of overhead.
-% We use a manual approach. See "acquiring a single image in a loop"
-% example on Mathworks.com
-% Configure the object for manual trigger mode.
-
-%start the video acquisition
-start(vid);
 start(vid2);
 
 %Set some constant variables outside the while loop
@@ -85,7 +79,7 @@ end
 
 
 %%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
-arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
+arduino=serial('COM3','BaudRate',9600); % create serial communication object on port COM4
 %arduino.ReadAsyncMode = 'continuous'; %manual did not work when I tried it turning off and on async.
 fopen(arduino); % initiate arduino communication
 stopValue = 'done';
@@ -227,24 +221,26 @@ while(toc < 60*4 && currentRing < 5)
                 dropPole(arduino);
                 pause(2);
                 I2 = getsnapshot(vid2);
-                [successfullCatch, successfullDrop] = fishOnHook(I2, Vid2Position);
-                successfullCatch = 1;
+                %isFishOnHook = fishOnHook(I2, Vid2Position);
+                isFishOnHook = 1;
                 %If caught, drop it off. Else, continue fishing.
-                if successfullCatch == 1
+                if isFishOnHook == 1
                     dropOffFish(arduino);
                     %Wait till ready
                     status = isReady(arduino, status);
                     while status ~= 1
                         pause(0.5);
+                        status = isReady(arduino, status);
                     end
                     %Check if drop off was successfull
+                    pause(2); %Wait for it to stabalize
                     I2 = getsnapshot(vid2);
-                    [successfullCatch, successfullDrop] = fishOnHook(I2, Vid2Position);
-                    while successfullDrop ~= 1
+                    isFishOnHook = fishOnHook(I2, Vid2Position);
+                    while isFishOnHook ~= 1
                         dropPole(arduino);
                         pause(2);
                         I2 = getsnapshot(vid2);
-                        [successfullCatch, successfullDrop] = fishOnHook(I2, Vid2Position);
+                        isFishOnHook = fishOnHook(I2, Vid2Position);
                     end
                     fwrite(arduino, '7');
                 else

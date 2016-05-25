@@ -46,8 +46,8 @@ Stepper myStepper1(stepsPerRevolution, 8, 9, 10, 11);
 
 void setup() {
 // Button setup
-  pinMode(START, INPUT); //turn on switch
-  digitalWrite(START, HIGH);  
+  //pinMode(START, INPUT); //turn on switch
+  //digitalWrite(START, HIGH);  
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
@@ -251,7 +251,7 @@ settleAfterMove = 200;
         }
         delay(dropTime); 
         //Servo - raise pole
-         for (pos = 10; pos <= 180; pos += 4) { // goes from 10 degrees to 120 degrees
+         for (pos = 10; pos <= 180; pos += 5) { // goes from 10 degrees to 120 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
@@ -272,12 +272,12 @@ settleAfterMove = 200;
           delay(15);                       // waits for the servo to reach the position
         }
         //Servo - drop pole
-        for (pos = 150; pos >= 90; pos -= 1) { // goes from 150 degrees to 90 deg5rees
+        for (pos = 150; pos >= 90; pos -= 5) { // goes from 150 degrees to 90 deg5rees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
         //Servo - raise pole
-        for (pos = 90; pos <= 180; pos += 1) { // goes from 90 degrees to 1500 degrees
+        for (pos = 90; pos <= 180; pos += 5) { // goes from 90 degrees to 1500 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
@@ -304,7 +304,8 @@ settleAfterMove = 200;
         isReady = false;
         alreadySent = false;
         //Servo - lower pole close to board
-          myservo.write(90);
+        myservo.write(90);
+        delay(100);  
       break;
 
 //-----------------------Reset Position------------------------------
