@@ -1,6 +1,7 @@
 clc
 clear
 
+imaqreset;
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 src = getselectedsource(vid);
 src.FrameRate = '6.0000';

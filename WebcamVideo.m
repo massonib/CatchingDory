@@ -4,13 +4,14 @@ clc
 offsetAngle = -1.09;
 robotLag = 0.5;
 
-xmin = 115; xDistance = 400; 
-ymin = 55; yDistance = 380;
-boardCenterX = 200 -xmin + 115;
-boardCenterY = 190 -ymin + 38;
+xmin = 98; xDistance = 400; 
+ymin = 52; yDistance = 380;
+boardCenterX = 200 -xmin + 98;
+boardCenterY = 190 -ymin + 35;
 boardCenter = [boardCenterX, boardCenterY];
 
 %%%%%%%%%%%%%%%%%%%%%%%%% CONFIGURE VIDEO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+imaqreset;
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
 vid.ROIPosition = [xmin ymin xDistance yDistance];
 src = getselectedsource(vid);
@@ -84,7 +85,7 @@ V = [];
 timerVal = tic;
 Vmean = 1;
 try
-while(toc < 20) %Run for 30 seconds
+while(toc < 30) %Run for 30 seconds
     lagStart = tic; 
     % Get the snapshot of the current frame
     % Instead of calling getsnapshot, which has a lot of overhead.
