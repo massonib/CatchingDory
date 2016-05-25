@@ -3,13 +3,13 @@
 #define DIR_PIN 4 //For Stepper "Motor 2" Nema 11
 #define STEP_PIN 5 //For Motor 2
 
+//----------Define Buttons--------------
 int START = 7; //button to start play
 int maxBackward = 2; //button at max backward motion
 int maxForward = 13; //button at max forward motion
 int maxCCW = 3; //button at max Rotational motion
 
-//----------------------------------
-//Defining used variables
+//-----Defining used variables----------
 int STARTstate = 0;
 int BoardRotate = 0; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
@@ -25,7 +25,7 @@ double rads;
 double shortDist; 
 double longDist;
 double h;
-int settleAfterMove;
+int settleAfterMove = 200;
 int rotate;
 int stepForward;
 int dropTime; //A drop time set by each ring.
@@ -35,6 +35,7 @@ bool alreadySent;
 bool startAlreadySent;
 bool stopAlreadySent;
 
+//------------Motor Setup-------------------
 Servo myservo;  // create servo object to control a servo
 int pos = 90;    // variable to store the servo position
 
@@ -46,8 +47,7 @@ Stepper myStepper1(stepsPerRevolution, 8, 9, 10, 11);
 
 void setup() {
 // Button setup
-  pinMode(START, INPUT); //turn on switch
-  digitalWrite(START, HIGH);  
+  pinMode(START, LOW); //turn on switch 
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
@@ -72,8 +72,7 @@ void setup() {
 char rx_byte = 0; // input value from serial monitor
 
 void loop() {
-settleAfterMove = 200;
-// Adjustments for pressed buttons
+//-----------Adjustments for pressed buttons--------
   while(digitalRead(maxBackward) == HIGH){
   //Motor1 - Vexta
   myStepper1.step(-1);
@@ -93,7 +92,24 @@ settleAfterMove = 200;
   
 //--------START playing the game------------------
 //  STARTstate = digitalRead(START);
-//  while(digitalRead(START) == LOW){
+  while(digitalRead(START) == HIGH){
+    //-----------Adjustments for pressed buttons--------
+  while(digitalRead(maxBackward) == HIGH){
+  //Motor1 - Vexta
+  myStepper1.step(-1);
+  delay(500);
+  }
+  while(digitalRead(maxCCW) == HIGH){
+  //Motor2 - Nema
+  rotateDeg(-1150, 1); 
+  delay(100);
+  }
+  while(digitalRead(maxForward) == HIGH){
+  //Motor1 - Vexta
+  myStepper1.step(1);
+  delay(500);
+  }
+//-------------------------------------------------
 //    if (!startAlreadySent)
 //    {
 //      Serial.println("Start");
@@ -104,7 +120,7 @@ settleAfterMove = 200;
   if (Serial.available() > 0) { // is a character available?
       rx_byte = Serial.read();
       switch (rx_byte) {
-        
+                  Serial.println(rx_byte);
 // Move motors specified by case number
 //-----------------------Move to ring 1 fish location---------------------------     
       case '1':
@@ -304,7 +320,7 @@ settleAfterMove = 200;
         isReady = false;
         alreadySent = false;
         //Servo - lower pole close to board
-          myservo.write(90);
+        myservo.write(90);
       break;
 
 //-----------------------Reset Position------------------------------
@@ -340,7 +356,7 @@ settleAfterMove = 200;
     alreadySent = true;
     Serial.println("Ready");
   }
-//  } // end: while (START) button is active
+  } // end: while (START) button is active
 //  if(startAlreadySent && !stopAlreadySent)
 //  {
 //    Serial.println("Stop");
