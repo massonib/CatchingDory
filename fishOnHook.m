@@ -3,8 +3,8 @@ function isFishOnHook = fishOnHook(I, position)
 x = position(1); width = position(3);
 y = position(2); height = position(4);
 
-%imshow(I);
-I = im2bw(I,0.80);%Set upper bound to Yellow Fish as Black
+imshow(I);
+I = im2bw(I,0.20);%Set upper bound to Yellow Fish as Black
 imshow(I);
 
 White_pix=0;
@@ -22,8 +22,7 @@ Black_pix=0;
  
  %For checking whether we catch the fish or not
  %flag=1 --> we are good! catch the fish
- %If more than 30% are black pixels
- if (Black_pix > width*height*.3)
+ if (White_pix > 4000)
      isFishOnHook = 1;
  else
      isFishOnHook = 0;

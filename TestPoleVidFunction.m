@@ -1,6 +1,6 @@
 clc
 clear
-Vid2Position = [12 32 160 114];
+Vid2Position = [0 83 352 182];
 %Set second video 
 
 imaqreset;
@@ -8,8 +8,8 @@ vid2 = videoinput('winvideo', 3, 'YUY2_352x288');
 vid2.ROIPosition = Vid2Position;
 src2 = getselectedsource(vid2);
 src2.FrameRate = '5.0000';
+src2.BacklightCompensation = 'off';
 %src2.Contrast = 64;
-%src2.Saturation = 128;
 set(vid2, 'FramesPerTrigger', Inf);
 set(vid2, 'ReturnedColorSpace','rgb')
 vid2.FrameGrabInterval = 1;
