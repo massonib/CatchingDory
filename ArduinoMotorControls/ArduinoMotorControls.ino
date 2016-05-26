@@ -11,12 +11,13 @@ int maxCCW = 3; //button at max Rotational motion
 
 //-----Defining used variables----------
 int STARTstate = 0;
-int BoardRotate = 0; // position of board rotation
+int BoardRotate; // position of board rotation
 int r_1 = 36; // Radius of outer ring  - ring 1 in motor steps
 int r_2 = 26; // Radius of ring 2
 int r_3 = 18; // Radius of ring 3
 int r_4 = 10; // Radius of ring 4
 int R_2 = 111; // Radius of robot arm
+int count;
 int theta;
 int theta1;
 int theta2;
@@ -27,6 +28,7 @@ double longDist;
 double h;
 int settleAfterMove = 200;
 int rotate;
+int rotateSUM;
 int stepForward;
 int dropTime; //A drop time set by each ring.
 int ring;
@@ -34,10 +36,12 @@ bool isReady;
 bool alreadySent;
 bool startAlreadySent;
 bool stopAlreadySent;
+int BoardRotate1;
+int BoardRotate2;
 
 //------------Motor Setup-------------------
 Servo myservo;  // create servo object to control a servo
-int pos = 90;    // variable to store the servo position
+int pos = 110;    // variable to store the servo position
 
 // change to fit number of steps per revolution for motor
 const int stepsPerRevolution = 8;  
@@ -67,6 +71,7 @@ void setup() {
 
   startAlreadySent = false;
   stopAlreadySent = false;
+  count = 0;
 }
 
 char rx_byte = 0; // input value from serial monitor
@@ -80,7 +85,7 @@ void loop() {
   }
   while(digitalRead(maxCCW) == HIGH){
   //Motor2 - Nema
-  rotateDeg(-1150, 1); 
+  rotateDeg(-1025, 1); 
   delay(100);
   }
   while(digitalRead(maxForward) == HIGH){
@@ -101,7 +106,7 @@ void loop() {
   }
   while(digitalRead(maxCCW) == HIGH){
   //Motor2 - Nema
-  rotateDeg(-1150, 1); 
+  rotateDeg(-1025, 1); 
   delay(100);
   }
   while(digitalRead(maxForward) == HIGH){
@@ -118,12 +123,31 @@ void loop() {
 //    stopAlreadySent = false;
   // Get serial input data
   if (Serial.available() > 0) { // is a character available?
-      rx_byte = Serial.read();
+      rx_byte = Serial.read()-'0';
+      if (count < 1)
+      {
+        BoardRotate1 = rx_byte;
+        count = 1;
+      }
+        else if (count == 1)
+      {
+        BoardRotate2 = rx_byte;
+        count = 2;
+      }
+        else if (count == 2)
+      {
+        BoardRotate = BoardRotate1*100 + BoardRotate2*10 + rx_byte;
+        Serial.println(BoardRotate);
+        count = 3;
+      } 
+        else
+      {
+         
+        //nothing
       switch (rx_byte) {
-                  Serial.println(rx_byte);
 // Move motors specified by case number
 //-----------------------Move to ring 1 fish location---------------------------     
-      case '1':
+      case 1:
           Serial.println("Busy");
           dropTime = 300;
           isReady = false;
@@ -148,16 +172,18 @@ void loop() {
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            rotateDeg(-rotate, 1); 
+            rotateDeg(-rotate, 1);
+            rotateSUM = 2500-rotate; 
           } else {
-            rotateDeg(rotate, 1);  
+            rotateDeg(rotate, 1);
+            rotateSUM = 2500+rotate;  
           }
           delay(settleAfterMove);
       ring = 1;
       break;
 
 //-----------------------Move to ring 2 fish location---------------------------
-      case '2':
+      case 2:
           Serial.println("Busy");
           dropTime = 600;
           isReady = false;
@@ -182,15 +208,18 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1); 
+            rotateSUM = 2725-rotate;
           } else {
-            rotateDeg(rotate, 1);  
+            rotateDeg(rotate, 1); 
+            rotateSUM = 2725+rotate; 
           }
+
           delay(settleAfterMove);
       ring = 2;
       break;
 
 //-----------------------Move to ring 3 fish location---------------------------
-      case '3':
+      case 3:
           dropTime = 700;
           Serial.println("Busy");
           isReady = false;
@@ -214,16 +243,18 @@ void loop() {
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            rotateDeg(-rotate, 1); 
+            rotateDeg(-rotate, 1);
+            rotateSUM = 2600-rotate; 
           } else {
-            rotateDeg(rotate, 1);  
+            rotateDeg(rotate, 1);
+            rotateSUM = 2600+rotate;  
           }
           delay(settleAfterMove);
       ring = 3;
       break;
 
 //-----------------------Move to ring 4 fish location---------------------------
-      case '4':
+      case 4:
           dropTime = 800;
           Serial.println("Busy");
           isReady = false;
@@ -247,27 +278,26 @@ void loop() {
           //Motor2 - Nema
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .0335 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
-            rotateDeg(-rotate, 1); 
+            rotateDeg(-rotate, 1);
+            rotateSUM = 2800-rotate; 
           } else {
-            rotateDeg(rotate, 1);  
+            rotateDeg(rotate, 1);
+            rotateSUM = 2800+rotate;  
           }
           delay(settleAfterMove);
       ring = 4;
       break;
 
-//-----------------------Catch fish------------------------------
-      case '5':
+//----------------------Catch fish------------------------------
+      case 5:
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
         //Servo - drop pole
-        for (pos = 110; pos >= 10; pos -= 10) { // goes from 110 degrees to 10 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
-        }
-        delay(dropTime); 
+          myservo.write(0);              // tell servo to go to position in variable 'pos'
+        delay(650); 
         //Servo - raise pole
-         for (pos = 10; pos <= 180; pos += 5) { // goes from 10 degrees to 120 degrees
+         for (pos = 0; pos <= 150; pos += 5) { // goes from 0 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
@@ -275,57 +305,62 @@ void loop() {
 
 
 //-----------------------Drop off fish------------------------------
-      case '6':
+      case 6:
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
         //Motor2 - Nema rotate in degrees to drop fish
-        rotateDeg((-2500+rotate), 1); 
+        rotateDeg(-rotateSUM, 1); 
         delay(100);
         //Servo - drop pole
-        for (pos = 90; pos >= 0; pos -= 10) { // goes from 90 degrees to 0 degrees
+        for (pos = 90; pos >= 0; pos -= 10) { // goes from 900 degrees to 0 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits for the servo to reach the position
+          delay(15);                       // waits 15ms for the servo to reach the position
         }
-        //Servo - drop pole
-        for (pos = 150; pos >= 90; pos -= 5) { // goes from 150 degrees to 90 deg5rees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits for the servo to reach the position
-        }
-        //Servo - raise pole
-        for (pos = 90; pos <= 180; pos += 5) { // goes from 90 degrees to 1500 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits for the servo to reach the position
-        }
+//        //Servo - drop pole
+//        for (pos = 150; pos >= 90; pos -= 1) { // goes from 900 degrees to 0 degrees
+//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
+//          delay(15);                       // waits 15ms for the servo to reach the position
+//        }
+//        //Servo - raise pole7
+//        for (pos = 90; pos <= 150; pos += 1) { // goes from 0 degrees to 90 degrees
+//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
+//          delay(15);                       // waits 15ms for the servo to reach the position
+//        }
+//        //Servo - raise pole
+//        for (pos = 0; pos <= 150; pos += 10) { // goes from 0 degrees to 90 degrees
+//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
+//          delay(15);                       // waits 15ms for the servo to reach the position
+//        }
       break;
 
 //----------------------Return to board from fish drop off---------------------------
-      case '7':
+      case 7:
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
         //Motor2 - Nema rotate back to catch another fish
-        rotateDeg((2500+(-rotate)), 1);  //reverse
+        rotateDeg(rotateSUM, 1);  //reverse
         delay(100);
         //Servo - lower pole
-        for (pos = 20; pos <= 90; pos += 10) { // goes from 0 degrees to 90 degrees
+        for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
       break;
 
 //----------------------Move pole ready to fish---------------------------
-      case '8':
+      case 8:
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
         //Servo - lower pole close to board
-        myservo.write(90);
+        myservo.write(60);
         delay(100);  
       break;
 
 //-----------------------Reset Position------------------------------
-      case '9':
+      case 9:
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
@@ -346,6 +381,7 @@ void loop() {
         //Do nothing because input was not a correct case number
       break;
     } // end: switch (rx_byte)
+    }
   } // end: if (Serial.available() > 0)
   else 
   {
