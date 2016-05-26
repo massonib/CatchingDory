@@ -115,12 +115,6 @@ void loop() {
   delay(500);
   }
 //-------------------------------------------------
-//    if (!startAlreadySent)
-//    {
-//      Serial.println("Start");
-//      startAlreadySent = true;
-//    }
-//    stopAlreadySent = false;
   // Get serial input data
   if (Serial.available() > 0) { // is a character available?
       rx_byte = Serial.read()-'0';
@@ -295,7 +289,7 @@ void loop() {
         alreadySent = false;
         //Servo - drop pole
           myservo.write(0);              // tell servo to go to position in variable 'pos'
-        delay(650); 
+        delay(700); 
         //Servo - raise pole
          for (pos = 0; pos <= 150; pos += 5) { // goes from 0 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
@@ -312,26 +306,6 @@ void loop() {
         //Motor2 - Nema rotate in degrees to drop fish
         rotateDeg(-rotateSUM, 1); 
         delay(100);
-        //Servo - drop pole
-        for (pos = 90; pos >= 0; pos -= 10) { // goes from 900 degrees to 0 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15ms for the servo to reach the position
-        }
-//        //Servo - drop pole
-//        for (pos = 150; pos >= 90; pos -= 1) { // goes from 900 degrees to 0 degrees
-//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-//          delay(15);                       // waits 15ms for the servo to reach the position
-//        }
-//        //Servo - raise pole7
-//        for (pos = 90; pos <= 150; pos += 1) { // goes from 0 degrees to 90 degrees
-//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-//          delay(15);                       // waits 15ms for the servo to reach the position
-//        }
-//        //Servo - raise pole
-//        for (pos = 0; pos <= 150; pos += 10) { // goes from 0 degrees to 90 degrees
-//          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-//          delay(15);                       // waits 15ms for the servo to reach the position
-//        }
       break;
 
 //----------------------Return to board from fish drop off---------------------------
@@ -356,7 +330,16 @@ void loop() {
         alreadySent = false;
         //Servo - lower pole close to board
         myservo.write(60);
-        delay(100);  
+        delay(300);  
+        //Servo - raise pole
+        for (pos = 60; pos <= 150; pos += 5) { // goes from 0 degrees to 90 degrees
+          myservo.write(pos);              // tell servo to go to position in variable 'pos'
+          delay(15); 
+        }
+        myservo.write(90);
+        delay(100); 
+        myservo.write(150);
+        delay(100); 
       break;
 
 //-----------------------Reset Position------------------------------
@@ -394,11 +377,6 @@ void loop() {
     Serial.println("Ready");
   }
   } // end: while (START) button is active
-//  if(startAlreadySent && !stopAlreadySent)
-//  {
-//    Serial.println("Stop");
-//    stopAlreadySent = true;
-//  }
 }
 
 
