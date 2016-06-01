@@ -5,9 +5,10 @@
 
 //----------Define Buttons--------------
 int START = 7; //button to start play
-int maxBackward = 2; //button at max backward motion
+int maxBackward = 6; //button at max backward motion
 int maxForward = 13; //button at max forward motion
 int maxCCW = 3; //button at max Rotational motion
+int sensorPin = 2; //analog motion sensor pin
 
 //-----Defining used variables----------
 int STARTstate = 0;
@@ -17,6 +18,7 @@ int r_2 = 26; // Radius of ring 2
 int r_3 = 18; // Radius of ring 3
 int r_4 = 10; // Radius of ring 4
 int R_2 = 111; // Radius of robot arm
+int sensorValue = 0;
 int count;
 int theta;
 int theta1;
@@ -29,6 +31,8 @@ double h;
 int settleAfterMove = 200;
 int rotate;
 int rotateSUM;
+int rotateSUM1;
+int rotateReturn;
 int stepForward;
 int dropTime; //A drop time set by each ring.
 int ring;
@@ -55,6 +59,7 @@ void setup() {
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
+  pinMode(sensorPin, INPUT);
   
 // Servo on pin 12 
   myservo.attach(12);
@@ -167,10 +172,12 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1);
-            rotateSUM = 2500-rotate; 
+            rotateSUM = 1500-rotate; // rotate to sensor
+            rotateSUM1 = 1000; // rotate to Drop off
           } else {
             rotateDeg(rotate, 1);
-            rotateSUM = 2500+rotate;  
+            rotateSUM = 1500+rotate;
+            rotateSUM1 = 1000; // rotate to Drop off
           }
           delay(settleAfterMove);
       ring = 1;
@@ -202,10 +209,12 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1); 
-            rotateSUM = 2725-rotate;
+            rotateSUM = 1725-rotate;
+            rotateSUM1 = 1000; // rotate to Drop off
           } else {
             rotateDeg(rotate, 1); 
-            rotateSUM = 2725+rotate; 
+            rotateSUM = 1725+rotate; 
+            rotateSUM1 = 1000; // rotate to Drop off
           }
 
           delay(settleAfterMove);
@@ -238,10 +247,12 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1);
-            rotateSUM = 2600-rotate; 
+            rotateSUM = 1600-rotate; 
+            rotateSUM1 = 1000; // rotate to Drop off
           } else {
             rotateDeg(rotate, 1);
-            rotateSUM = 2600+rotate;  
+            rotateSUM = 1600+rotate;
+            rotateSUM1 = 1000; // rotate to Drop off  
           }
           delay(settleAfterMove);
       ring = 3;
@@ -273,10 +284,12 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .0335 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1);
-            rotateSUM = 2800-rotate; 
+            rotateSUM = 1800-rotate; 
+            rotateSUM1 = 1000; // rotate to Drop off
           } else {
             rotateDeg(rotate, 1);
-            rotateSUM = 2800+rotate;  
+            rotateSUM = 1800+rotate;
+            rotateSUM1 = 1000; // rotate to Drop off  
           }
           delay(settleAfterMove);
       ring = 4;
@@ -303,8 +316,23 @@ void loop() {
         Serial.println("Busy");
         isReady = false;
         alreadySent = false;
-        //Motor2 - Nema rotate in degrees to drop fish
-        rotateDeg(-rotateSUM, 1); 
+        //Motor2 - Nema rotate in degrees to motion sensor
+        rotateDeg((-rotateSUM), 1); 
+        // Check motion sensor
+        sensorValue = digitalRead(sensorPin);
+        delay(500);
+        if (sensorValue > 0){
+        Serial.println("noFish");
+        rotateDeg((rotateSUM), 1);
+           //Servo - lower pole
+           for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
+             myservo.write(pos);              // tell servo to go to position in variable 'pos'
+             delay(15);                       // waits for the servo to reach the position
+           }
+          } else { // Caught a fish
+        Serial.println("fish");
+        rotateDeg((-rotateSUM1), 1);
+          }
         delay(100);
       break;
 
@@ -314,7 +342,9 @@ void loop() {
         isReady = false;
         alreadySent = false;
         //Motor2 - Nema rotate back to catch another fish
-        rotateDeg(rotateSUM, 1);  //reverse
+        rotateReturn = abs(rotateSUM)+abs(rotateSUM1);
+        rotateDeg(rotateReturn, 1);  //reverse
+        
         delay(100);
         //Servo - lower pole
         for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
