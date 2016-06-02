@@ -10,4 +10,3 @@ while status ~= 1 %If 'Ready'
     pause(0.5)
     status = isReady(arduino, status);
 end
-pause(2); %Pause for 2 additional seconds
