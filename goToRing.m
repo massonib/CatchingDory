@@ -1,4 +1,4 @@
-function goToRing(arduino, value, status)
+function status = goToRing(arduino, value, status)
 
 %Rings are numbered 1-4, which corresponds to their call function
 
@@ -10,4 +10,4 @@ while status ~= 1 %If 'Ready'
     pause(0.5)
     status = isReady(arduino, status);
 end
-pause(1); %Pause for 1 additional second
+pause(2); %Pause for 2 additional seconds

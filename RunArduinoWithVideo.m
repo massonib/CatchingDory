@@ -25,6 +25,7 @@ delete(vid)
 clear vid;
 offsetAngle = findAngle(anglePic);
 robotOffsetAngle = robotAngle(offsetAngle);%Degrees
+fprintf('Offset = %s Degrees\n',robotOffsetAngle);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -86,7 +87,7 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-cropMultipliers = [1, 0.75, 0.45, 0.35];
+cropMultipliers = [1, 0.75, 0.55, 0.45];
 cropH = cropMultipliers.*(mainRadius);
 cropV = cropMultipliers.*(1.05*mainRadius);
 ringMultipliers = [0.6, 0.35, 0.2, 0.01];
@@ -106,6 +107,7 @@ read = '';
 if arduino.BytesAvailable > 0
     read = fscanf(arduino, '%s');  
 end
+fprintf('Ready to Start\n');
 while strcmp(read, 'Ready') ~= 1
     pause(0.5);
     if arduino.BytesAvailable > 0      
@@ -117,18 +119,22 @@ fwrite(arduino, robotOffsetAngle);
 resetRobot(arduino);
 fwrite(arduino, '8');
 currentRing = 2;
-goToRing(arduino, currentRing, status);
+status = goToRing(arduino, currentRing, status);
 missedCounter = 0;
 goToNextRing = 0;
 
 tic
 startTimeInRing = tic;
-while(toc < 120)%2 minutes
+while(toc < 140)%2 minutes + 20 seconds
     %Go to the next ring if no fish in hole or time in ring has exceeded 40
     %seconds
     timeInRing = toc(startTimeInRing);
-    if goToNextRing == 1 || timeInRing > 40 
-        startTimeInRing = tic;
+    if currentRing == 2 && timeInRing > 40 
+        goToNextRing = 1;
+    elseif currentRing == 1 && timeInRing > 60
+        goToNextRing = 1;
+    end
+    if goToNextRing == 1
         if currentRing == 2
             currentRing = 1;
         elseif currentRing == 1
@@ -139,8 +145,9 @@ while(toc < 120)%2 minutes
             currentRing = 2;
         end
         resetRobot(arduino);
-        goToRing(arduino, currentRing, status);
+        status = goToRing(arduino, currentRing, status);
         goToNextRing = 0;
+        startTimeInRing = tic;
     end
     
     lagStart = tic; 
