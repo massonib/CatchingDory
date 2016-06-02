@@ -33,26 +33,16 @@ vid.FrameGrabInterval = frameGrabRate;
 triggerconfig(vid, 'manual');
 %start the video acquisition
 start(vid);
-
-%Create video 2 and set it parameters
-Vid2Position = [0 83 352 182];
-vid2 = videoinput('winvideo', 3, 'YUY2_352x288');
-vid2.ROIPosition = Vid2Position;
-src2 = getselectedsource(vid2);
-src2.FrameRate = '5.0000';
-src2.BacklightCompensation = 'off';
-%src2.Contrast = 64;
-set(vid2, 'FramesPerTrigger', Inf);
-set(vid2, 'ReturnedColorSpace','rgb')
-vid2.FrameGrabInterval = 1;
-triggerconfig(vid2, 'manual');
-start(vid2);
-
 %Set some constant variables outside the while loop
 vidCenterX = xDistance/2;
 vidCenterY = yDistance/2;
 vidCenter = [vidCenterX, vidCenterY];
 mainRadius = (yDistance+xDistance)/4;
+
+%Set Angles
+offsetAngle = findAngle(I);
+robotOffsetAngle = robotAngle(offsetAngle);%Degrees
+
 
 %Radian Positions for Open Mouth Fish, with row1 = ring 1 (outerRing)
 ringAnglesPreOffset = [0.39, -2.48 ; 0.99, -3.03 ; -0.19, 1.7 ; 2.81, -1.03]; 
@@ -79,10 +69,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+
+
 %%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
 arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
 %arduino.ReadAsyncMode = 'continuous'; %manual did not work when I tried it turning off and on async.
 fopen(arduino); % initiate arduino communication
+closeFID = onCleanup(@() fclose(arduino));
+closeFID2 = onCleanup(@() delete(arduino));
 stopValue = 'done';
 pause(5); %Pause for 5 seconds to allow for connection to be established
 status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
@@ -95,9 +89,6 @@ status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
 %Start at position above inner ring
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%Set Angles
-offsetAngle = findAngle(I);
-robotOffsetAngle = robotAngle(offsetAngle);%Degrees
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cropMultipliers = [1, 0.75, 0.51, 0.4];
@@ -109,7 +100,7 @@ ringV = ringMultipliers.*(mainRadius);
 %%Note that the Arduino controls when to start and stop the game
 %%This code can be running before and after without inference or penalty.
 % Set a loop that stop after signal is changed????
-tic
+
 counter = 0;
 needNewFish = 1;
 V = [];
@@ -129,14 +120,33 @@ end
 
 fwrite(arduino, robotOffsetAngle);
 resetRobot(arduino);
+fwrite(arduino, '8');
 currentRing = 2;
-goToRing(arduino, currentRing);
+goToRing(arduino, currentRing, status);
 missedCounter = 0;
+goToNextRing = 0;
 
-while(toc < 60*1000)
-    if (currentRing < 0)
-        currentRing = 4;
+tic
+startTimeInRing = tic;
+while(toc < 120)%2 minutes
+    %Go to the next ring if no fish in hole or time in ring has exceeded 40
+    %seconds
+    timeInRing = toc(startTimeInRing);
+    if goToNextRing == 1 || timeInRing > 40 
+        timeInRing = tic;
+        if currentRing == 2
+            currentRing = 1;
+        elseif currentRing == 1
+            currentRing = 3;
+        elseif curentRing == 3
+            currentRing = 4;
+        elseif currentRing == 4
+            currentRing = 2;
+        end
+        resetRobot(arduino);
+        goToRing(arduino, currentRing, status);
     end
+    
     lagStart = tic; 
     % Get the snapshot of the current frame
     I = getsnapshot(vid);
@@ -231,49 +241,7 @@ while(toc < 60*1000)
             %second
             status = isReady(arduino, status);
             if status == 1 %If 'Ready' 
-                fwrite(arduino, '5'); %drop pole
-                pause(0.5);
-                status = isReady(arduino, status);
-                while status ~= 1
-                    pause(0.5);
-                    status = isReady(arduino, status);
-                end
-                fwrite(arduino, '6'); %move to drop off
-                pause(0.5);
-                %Wait till ready
-                status = isReady(arduino, status);
-                while status ~= 1
-                    pause(0.5);
-                    status = isReady(arduino, status);
-                end
-                pause(2);
-                I2 = getsnapshot(vid2);
-                isFishOnHook = fishOnHook(I2, Vid2Position);
-                %If caught, drop it off. Else, continue fishing.
-                if isFishOnHook == 1
-                    missedCounter = 0;
-                    fwrite(arduino, '8'); %Drop off
-                    %Check if drop off was successfull
-                    pause(2); %Wait for it to stabalize
-                    I2 = getsnapshot(vid2);
-                    isFishOnHook = fishOnHook(I2, Vid2Position);
-                    while isFishOnHook == 1
-                        fwrite(arduino, '8'); %Drop off
-                        pause(2);
-                        I2 = getsnapshot(vid2);
-                        isFishOnHook = fishOnHook(I2, Vid2Position);
-                    end
-                else
-                    %Set back to low position 
-                    missedCounter = missedCounter +1;   
-                end
-                fwrite(arduino, '7');
-                status = isReady(arduino, status);
-                while status ~= 1
-                    pause(0.5);
-                    status = isReady(arduino, status);
-                end
-                pause(2);
+                fwrite(arduino, '5'); %drop off fish
             end
             break;
         end 
@@ -293,12 +261,7 @@ while(toc < 60*1000)
     if isempty(stats) %if empty
         counter = counter + 1;
         if counter > 12 %30 frames. 2 seconds
-            currentRing = currentRing - 1;
-            if(currentRing > 0)
-                resetRobot(arduino);
-                goToRing(arduino, currentRing);
-                pause(2);
-            end
+            goToNextRing = 1;
         end
     else
         counter = 0;

@@ -4,7 +4,7 @@ function [objectStats] = findHoles(I)
 
 I = rgb2gray(I);
 %imshow(I)
-thresholdValue = 50; %C1 = 40. C2 = 10
+thresholdValue = 40; %C1 = 40. Competition = 50
 I = I > thresholdValue;
 %imshow(I)
 I = bwareaopen(I,200);
