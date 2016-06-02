@@ -14,7 +14,9 @@ src.FrameRate = '6.0000';
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
- 
+%src.Saturation = 180;
+%src.Contrast = 100; 
+
 preview(vid);
 
 % Capture one frame of data.

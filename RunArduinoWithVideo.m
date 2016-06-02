@@ -2,8 +2,6 @@ clear
 clc
 
 RobotZero = -1.1;
-robotOffsetAngle = '096'; %Degrees
-offsetAngle = 0.5762;
 robotLag = 0.4;
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,6 +95,10 @@ status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
 %Start at position above inner ring
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Set Angles
+offsetAngle = findAngle(I);
+robotOffsetAngle = robotAngle(offsetAngle);%Degrees
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cropMultipliers = [1, 0.75, 0.51, 0.4];
 cropH = cropMultipliers.*(mainRadius);
@@ -131,7 +133,7 @@ currentRing = 2;
 goToRing(arduino, currentRing);
 missedCounter = 0;
 
-while(toc < 60*4)
+while(toc < 60*1000)
     if (currentRing < 0)
         currentRing = 4;
     end
@@ -210,6 +212,7 @@ while(toc < 60*4)
     
     %Offset ringAngle for velocity and lag
     processLag = toc(lagStart);
+    %TODO: erro on next line after it moves.
     pickupAngle =  ringAngles(currentRing) + Vmean*(processLag + robotLag);
     if pickupAngle > pi 
         pickupAngle = pickupAngle - 2*pi;

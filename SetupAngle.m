@@ -21,3 +21,6 @@ clear vid;
 
 %I = imread('ZeroAngle.png');
 offsetAngle = findAngle(I);
+robotDegrees = robotAngle(offsetAngle);
+
+
