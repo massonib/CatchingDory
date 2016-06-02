@@ -1,17 +1,6 @@
 clear
 clc
 
-%%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
-arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
-%arduino.ReadAsyncMode = 'continuous'; %manual did not work when I tried it turning off and on async.
-fopen(arduino); % initiate arduino communication
-closeFID = onCleanup(@() fclose(arduino));
-closeFID2 = onCleanup(@() delete(arduino));
-stopValue = 'done';
-pause(5); %Pause for 5 seconds to allow for connection to be established
-status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%Setup Angle
 RobotZero = -1.1;
 robotLag = 0.4;
@@ -24,8 +13,10 @@ anglePic = getsnapshot(vid);
 delete(vid)
 clear vid;
 offsetAngle = findAngle(anglePic);
+robotDegrees = robotAngle(offsetAngle);
+%Set Angles
+offsetAngle = findAngle(I);
 robotOffsetAngle = robotAngle(offsetAngle);%Degrees
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%% Setup Camera %%%%%%%%%%%%%%%%%%%%%%%%%
 xmin = 98; xDistance = 400; 
@@ -60,6 +51,9 @@ vidCenterY = yDistance/2;
 vidCenter = [vidCenterX, vidCenterY];
 mainRadius = (yDistance+xDistance)/4;
 
+
+
+
 %Radian Positions for Open Mouth Fish, with row1 = ring 1 (outerRing)
 ringAnglesPreOffset = [0.39, -2.48 ; 0.99, -3.03 ; -0.19, 1.7 ; 2.81, -1.03]; 
 ringAngles = [0,0,0,0];
@@ -85,8 +79,29 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+
+
+%%%%%%%%%%%%%%% Setup Arduino %%%%%%%%%%%%%%%%%%%%%%%%
+arduino=serial('COM4','BaudRate',9600); % create serial communication object on port COM4
+%arduino.ReadAsyncMode = 'continuous'; %manual did not work when I tried it turning off and on async.
+fopen(arduino); % initiate arduino communication
+closeFID = onCleanup(@() fclose(arduino));
+closeFID2 = onCleanup(@() delete(arduino));
+stopValue = 'done';
+pause(5); %Pause for 5 seconds to allow for connection to be established
+status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
+
+%Send angle to Arduino "Note that the first three values will always be an
+%angle +> 010 = ten degrees. 348 = 348 degrees.
+
+
+%Check position on all rings
+%Start at position above inner ring
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-cropMultipliers = [1, 0.75, 0.45, 0.35];
+cropMultipliers = [1, 0.75, 0.51, 0.4];
 cropH = cropMultipliers.*(mainRadius);
 cropV = cropMultipliers.*(1.05*mainRadius);
 ringMultipliers = [0.6, 0.35, 0.2, 0.01];
@@ -128,7 +143,7 @@ while(toc < 120)%2 minutes
     %seconds
     timeInRing = toc(startTimeInRing);
     if goToNextRing == 1 || timeInRing > 40 
-        startTimeInRing = tic;
+        timeInRing = tic;
         if currentRing == 2
             currentRing = 1;
         elseif currentRing == 1
@@ -140,7 +155,6 @@ while(toc < 120)%2 minutes
         end
         resetRobot(arduino);
         goToRing(arduino, currentRing, status);
-        goToNextRing = 0;
     end
     
     lagStart = tic; 
