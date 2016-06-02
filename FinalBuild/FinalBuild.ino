@@ -19,14 +19,14 @@ int r_3 = 18; // Radius of ring 3
 int r_4 = 10; // Radius of ring 4
 int R_2 = 111; // Radius of robot arm
 int sensorValue = 0;
-int fishCheck;
+int fish = 0;
 int count;
 int theta;
 int theta1;
 int theta2;
 int adjust;
 double rads;
-double shortDist; 
+double shortDist;
 double longDist;
 double h;
 int settleAfterMove = 200;
@@ -60,7 +60,7 @@ void setup() {
   pinMode(maxBackward, LOW); //turn on pull-down resistor
   pinMode(maxForward, LOW); //turn on pull-down resistor
   pinMode(maxCCW, HIGH); //turn on pull-up resistors
-  pinMode(sensorPin, INPUT);
+  attachInterrupt(0, checkFish, FALLING);
   
 // Servo on pin 12 
   myservo.attach(12);
@@ -124,6 +124,7 @@ void loop() {
   // Get serial input data
   if (Serial.available() > 0) { // is a character available?
       rx_byte = Serial.read()-'0';
+      checkFish();
       if (count < 1)
       {
         BoardRotate1 = rx_byte;
@@ -309,54 +310,41 @@ void loop() {
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits 15ms for the servo to reach the position
         }
-      break;
-
-
-//-----------------------Drop off fish------------------------------
-      case 6:
-        Serial.println("Busy");
-        isReady = false;
-        alreadySent = false;
         //Motor2 - Nema rotate in degrees to motion sensor
         rotateDeg((-rotateSUM), 1); 
-        delay(900);
-          for (int i=0; i <= 5; i++){
-            // Check motion sensor
-            sensorValue = digitalRead(sensorPin);
-            if (sensorValue == 0){
-            fishCheck ++;
-            delay(500);
-            } else {
-              // nothing
-            }
-          } // end fish check loop
-          Serial.println(fishCheck);
-          
-        if (fishCheck == 0){
-        Serial.println("noFish");
-        rotateDeg((rotateSUM), 1);
-           //Servo - lower pole
-           for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
-             myservo.write(pos);              // tell servo to go to position in variable 'pos'
-             delay(15);                       // waits for the servo to reach the position
-           }
-          } else { // Caught a fish
-        Serial.println("fish");
-        rotateDeg((-rotateSUM1), 1);
+        delay(100);
+        // If there is a fish detected as caught by interupt function
+        while (fish == 1){
+          fish = 0;
+          rotateDeg((-rotateSUM1), 1); 
+          delay(100); 
+          //Servo - lower pole
+          myservo.write(60);
+          delay(50);  
+          //Servo - raise pole
+          for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+            myservo.write(pos);              // tell servo to go to position in variable 'pos'
+            delay(15); 
           }
-        delay(100);
-      break;
-
-//----------------------Return to board from fish drop off---------------------------
-      case 7:
-        Serial.println("Busy");
-        isReady = false;
-        alreadySent = false;
+          //Servo - lower pole
+          myservo.write(80);
+          delay(100); 
+          //Servo - raise pole
+          for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+            myservo.write(pos);              // tell servo to go to position in variable 'pos'
+            delay(15); 
+          }
+          fish = 0;
+          checkFish();
+          //rotate back to check fish
+          rotateDeg((rotateSUM1), 1); 
+          delay(100);
+          checkFish();
+          delay(100);
+        } 
         //Motor2 - Nema rotate back to catch another fish
-        rotateReturn = abs(rotateSUM)+abs(rotateSUM1);
-        rotateDeg(rotateReturn, 1);  //reverse
-        
-        delay(100);
+        rotateDeg((rotateSUM), 1); 
+        delay(50);
         //Servo - lower pole
         for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
@@ -372,15 +360,6 @@ void loop() {
         //Servo - lower pole close to board
         myservo.write(60);
         delay(300);  
-        //Servo - raise pole
-        for (pos = 60; pos <= 150; pos += 5) { // goes from 0 degrees to 90 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15); 
-        }
-        myservo.write(90);
-        delay(100); 
-        myservo.write(150);
-        delay(100); 
       break;
 
 //-----------------------Reset Position------------------------------
@@ -397,6 +376,7 @@ void loop() {
         //Motor2 - Nema
         rotateDeg(8, 1); // Rotate robot arm back to 0 degrees
         delay(15);
+        fish = 0;
         }
       break;
 
@@ -421,7 +401,12 @@ void loop() {
 }
 
 
-
+void checkFish() {
+  sensorValue = digitalRead(sensorPin);
+  if (sensorValue == 0){
+    fish = 1;
+  }
+}
 
 
 //----------------Motor2 movement function-------------------------------
