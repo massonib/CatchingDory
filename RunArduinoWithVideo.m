@@ -13,7 +13,7 @@ status = 1; %This is the equivalent of a boolean for 'Ready'. 0 = 'Busy'.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%Setup Angle
-RobotZero = -1.1;
+RobotZero = -1.12;
 robotLag = 0.4;
 imaqreset;%Handles mistakely ended video feeds
 vid = videoinput('winvideo', 1, 'RGB24_640x480');
@@ -122,6 +122,7 @@ currentRing = 2;
 status = goToRing(arduino, currentRing, status);
 missedCounter = 0;
 goToNextRing = 0;
+timeOfLastTrigger = tic;
 
 tic
 startTimeInRing = tic;
@@ -129,9 +130,7 @@ while(toc < 140)%2 minutes + 20 seconds
     %Go to the next ring if no fish in hole or time in ring has exceeded 40
     %seconds
     timeInRing = toc(startTimeInRing);
-    if currentRing == 2 && timeInRing > 40 
-        goToNextRing = 1;
-    elseif currentRing == 1 && timeInRing > 60
+    if currentRing == 2 && timeInRing > 60 
         goToNextRing = 1;
     end
     if goToNextRing == 1
@@ -148,6 +147,7 @@ while(toc < 140)%2 minutes + 20 seconds
         status = goToRing(arduino, currentRing, status);
         goToNextRing = 0;
         startTimeInRing = tic;
+        timeOfLastTrigger = tic;
     end
     
     lagStart = tic; 
@@ -159,7 +159,7 @@ while(toc < 140)%2 minutes + 20 seconds
     %Crop the image with a circle
     if currentRing == 1
         I = cropWithEllipse(I, vidCenterX, vidCenterY, cropH(currentRing), cropV(currentRing));
-        I = insertEllipse(I, boardCenterX, boardCenterY, ringH(currentRing), ringV(currentRing));% center and radius of circle    
+        I = insertEllipse(I, boardCenterX, boardCenterY+5, ringH(currentRing), ringV(currentRing));% center and radius of circle    
     elseif currentRing > 1
         cropCenterX = (boardCenterX + vidCenterX)/2;
         cropCenterY =(boardCenterY + vidCenterY)/2;
@@ -246,6 +246,7 @@ while(toc < 140)%2 minutes + 20 seconds
             if status == 1 %If 'Ready' 
                 fwrite(arduino, '5'); %drop off fish
             end
+            timeOfLastTrigger = tic;
             break;
         end 
     end
@@ -269,6 +270,10 @@ while(toc < 140)%2 minutes + 20 seconds
     else
         counter = 0;
     end 
+    timeFromLastTrigger = toc(timeOfLastTrigger);
+    if timeFromLastTrigger > 10 %10 Seconds
+        goToNextRing = 1;
+    end
 end
 
 %%Tackle the blue fish if we ever get here.
@@ -279,3 +284,4 @@ stop(vid);
 flushdata(vid);
 delete(vid);
 fclose(arduino); 
+delete(arduino);
