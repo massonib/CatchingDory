@@ -29,7 +29,7 @@ double rads;
 double shortDist;
 double longDist;
 double h;
-int settleAfterMove = 200;
+int settleAfterMove = 2000;
 int rotate;
 int rotateSUM;
 int rotateSUM1;
@@ -350,6 +350,7 @@ void loop() {
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
           delay(15);                       // waits for the servo to reach the position
         }
+        delay(2000); //Wait for pole to settle
       break;
 
 //----------------------Move pole ready to fish---------------------------
