@@ -21,8 +21,7 @@ frameRate = 6;
 %These values were determined using imaqtool
 src.Saturation = 299; %%Better color disctinction
 src.Gamma = 70; 
-%src.Saturation = 180;  
-%src.Contrast = 100; 
+
 
 % preview(vid);
 %stoppreview(vid);

@@ -126,7 +126,7 @@ timeOfLastTrigger = tic;
 
 tic
 startTimeInRing = tic;
-while(toc < 140)%2 minutes + 20 seconds
+while(toc < 1400)%2 minutes + 20 seconds
     %Go to the next ring if no fish in hole or time in ring has exceeded 40
     %seconds
     timeInRing = toc(startTimeInRing);

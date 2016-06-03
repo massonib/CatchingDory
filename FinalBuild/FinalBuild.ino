@@ -174,12 +174,12 @@ void loop() {
           rotate = ((acos(longDist/R_2))*(180/3.14))/.0335; // gearbox .067 deg per step
           if (BoardRotate + theta < 180 || BoardRotate + theta > 360){
             rotateDeg(-rotate, 1);
-            rotateSUM = 1500-rotate; // rotate to sensor
-            rotateSUM1 = 1000; // rotate to Drop off
+            rotateSUM = 1600-rotate; // rotate to sensor
+            rotateSUM1 = 900; // rotate to Drop off
           } else {
             rotateDeg(rotate, 1);
-            rotateSUM = 1500+rotate;
-            rotateSUM1 = 1000; // rotate to Drop off
+            rotateSUM = 1600+rotate;
+            rotateSUM1 = 900; // rotate to Drop off
           }
           delay(settleAfterMove);
       ring = 1;
@@ -311,40 +311,74 @@ void loop() {
           delay(15);                       // waits 15ms for the servo to reach the position
         }
         //Motor2 - Nema rotate in degrees to motion sensor
-        rotateDeg((-rotateSUM), 1); 
-        delay(100);
-        // If there is a fish detected as caught by interupt function
-        while (fish == 1){
+        rotateDeg((-rotateSUM-100), 1); 
+        delay(400);
+        if (fish == 1){
+          // If there is a fish detected as caught by interupt function
           fish = 0;
-          rotateDeg((-rotateSUM1), 1); 
-          delay(100); 
-          //Servo - lower pole
-          myservo.write(60);
-          delay(50);  
-          //Servo - raise pole
-          for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
-            myservo.write(pos);              // tell servo to go to position in variable 'pos'
-            delay(15); 
-          }
-          //Servo - lower pole
-          myservo.write(80);
-          delay(100); 
-          //Servo - raise pole
-          for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
-            myservo.write(pos);              // tell servo to go to position in variable 'pos'
-            delay(15); 
-          }
-          fish = 0;
-          checkFish();
-          //rotate back to check fish
-          rotateDeg((rotateSUM1), 1); 
-          delay(100);
-          checkFish();
-          delay(100);
-        } 
-        //Motor2 - Nema rotate back to catch another fish
-        rotateDeg((rotateSUM), 1); 
-        delay(50);
+            rotateDeg((-rotateSUM1+100), 1); 
+            delay(100); 
+            //Servo - lower pole
+            myservo.write(60);
+            delay(50);  
+            //Servo - raise pole
+            for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(15); 
+            }
+            //Servo - lower pole
+            myservo.write(80);
+            delay(100); 
+            //Servo - raise pole
+            for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(15); 
+            }
+            fish = 0;
+            checkFish();
+            //rotate back to check fish
+            rotateDeg((rotateSUM1+100), 1); 
+            delay(400);
+            checkFish();
+            delay(100);
+            
+          while (fish == 1){
+            fish = 0;
+            rotateDeg((-rotateSUM1-100), 1); 
+            delay(100); 
+            //Servo - lower pole
+            myservo.write(60);
+            delay(50);  
+            //Servo - raise pole
+            for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(15); 
+            }
+            //Servo - lower pole
+            myservo.write(80);
+            delay(100); 
+            //Servo - raise pole
+            for (pos = 60; pos <= 150; pos += 5) { // goes from 60 degrees to 150 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(15); 
+            }
+            fish = 0;
+            checkFish();
+            //rotate back to check fish
+            rotateDeg((rotateSUM1+100), 1); 
+            delay(400);
+            checkFish();
+            delay(100);
+          } 
+          //Motor2 - Nema rotate back to catch another fish
+          rotateDeg((rotateSUM-100), 1); 
+          delay(50);
+        }
+        else{
+          //Motor2 - Nema rotate back to catch another fish
+          rotateDeg((rotateSUM+100), 1); 
+          delay(50);
+        }
         //Servo - lower pole
         for (pos = 150; pos >= 60; pos -= 10) { // goes from 20 degrees to 90 degrees
           myservo.write(pos);              // tell servo to go to position in variable 'pos'
