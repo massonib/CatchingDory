@@ -46,7 +46,7 @@ int BoardRotate2;
 
 //------------Motor Setup-------------------
 Servo myservo;  // create servo object to control a servo
-int pos = 110;    // variable to store the servo position
+int pos = 60;    // variable to store the servo position
 
 // change to fit number of steps per revolution for motor
 const int stepsPerRevolution = 8;  
